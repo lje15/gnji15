@@ -1,0 +1,2042 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5반 쉼표</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 전자칠판 가로 한 화면 — 위 탭줄, 아래 게임 무대. 크레용 테두리, 파스텔은 넓은 면에. 한 가지 밝은 화면으로 고정 */
+:root{
+  --paper:#FAF8F6;
+  --white:#FFFFFF;
+  --ink:#2F2A35;
+  --muted:#6E6774;
+  --line:#D9D2DA;
+  --peach:#FFDCC9;
+  --sky:#CFE2F4;
+  --mint:#D3EDDB;
+  --lav:#E2DAF3;
+  --lemon:#F8EDBF;
+  --rose:#F7D2DB;
+  --good:#3C8A5B;
+  --good-bg:#BFE6CC;
+  --amber:#7A5A00;
+  --amber-bg:#F2DC86;
+  --bad:#C4553F;
+  --display:"Gowun Batang","Noto Serif KR",serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --num:"Gowun Batang","Times New Roman",serif;
+  --math:var(--num);
+  color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:default;opacity:.45}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+.sketch{position:relative;isolation:isolate;background:none;border:0}
+.sketch::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--fill,transparent);
+  border:2.5px solid var(--ink);border-radius:16px 22px 14px 24px / 22px 14px 24px 16px;filter:url(#crayon)}
+.f-peach{--fill:var(--peach)}.f-sky{--fill:var(--sky)}.f-mint{--fill:var(--mint)}.f-lav{--fill:var(--lav)}
+.f-lemon{--fill:var(--lemon)}.f-rose{--fill:var(--rose)}.f-paper{--fill:var(--paper)}.f-white{--fill:var(--white)}
+
+.app{height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px}
+header{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand h1{font-family:var(--display);font-size:clamp(24px,2vw,34px);margin:0;letter-spacing:-.01em}
+.brand span{color:var(--muted);font-size:13px}
+.brand .sub{font-family:var(--display);font-weight:700;color:var(--ink);font-size:clamp(15px,1.2vw,19px)}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tg{font-size:13px;color:var(--muted);font-weight:700;margin:0 2px 0 10px;letter-spacing:.04em}
+.tg:first-child{margin-left:0}
+.tab{padding:8px 12px;font-size:clamp(15px,1.15vw,19px);font-weight:500;display:flex;flex-direction:column;align-items:flex-start;line-height:1.25}
+.tab small{font-size:.68em;color:var(--muted);font-weight:400}
+.tab[aria-selected="true"]{font-weight:700}
+.tab[aria-selected="false"]::before{border-color:var(--line);--fill:transparent}
+.clock{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.clock b{font-family:var(--num);font-size:clamp(24px,2vw,34px);font-variant-numeric:tabular-nums}
+.clock span{font-size:12px;color:var(--muted)}
+.fs-btn{padding:9px 16px;font-size:clamp(14px,1.05vw,17px)}
+
+.stage{padding:clamp(14px,1.8vw,28px);display:flex;flex-direction:column;gap:clamp(10px,1.3vh,18px);min-height:0;overflow:auto}
+.ghead{display:flex;align-items:baseline;gap:8px 16px;flex-wrap:wrap}
+.ghead h2{font-family:var(--display);font-size:clamp(24px,2.2vw,38px);margin:0}
+.ghead p{margin:0;color:var(--muted);font-size:clamp(14px,1.1vw,19px);flex:1;min-width:16em}
+.opts{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center}
+.seg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg .lb{font-size:14px;color:var(--muted);margin-right:2px}
+.seg button{padding:7px 14px;font-size:clamp(14px,1.05vw,17px)}
+.seg button[aria-pressed="false"]::before{border-color:var(--line);--fill:transparent}
+.seg button[aria-pressed="true"]{font-weight:700}
+.btn{padding:10px 20px;font-weight:500;font-size:clamp(15px,1.2vw,20px)}
+.btn.big{padding:14px 30px;font-size:clamp(18px,1.6vw,26px);font-weight:700}
+.ghost::before{border-color:var(--line)!important}
+.armed{color:var(--bad);font-weight:700}
+
+/* 숫자 키패드 */
+.keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.keys button{min-height:clamp(52px,7vh,84px);font-family:var(--num);font-size:clamp(24px,2.4vw,40px)}
+.keys button.fn{font-family:var(--body);font-size:clamp(15px,1.25vw,21px);font-weight:500}
+
+/* 숫자야구 */
+.bb{flex:1;min-height:0;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+.bb.duel{grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(0,1fr)}
+.bb-pad{display:flex;flex-direction:column;gap:12px;justify-content:center;min-width:0}
+.turn{font-family:var(--display);font-size:clamp(20px,1.9vw,32px);font-weight:700;text-align:center}
+.slots{display:flex;gap:10px;justify-content:center}
+.slot{width:clamp(50px,4.8vw,84px);height:clamp(62px,7.5vh,100px);display:flex;align-items:center;justify-content:center;font-family:var(--num);font-size:clamp(34px,3.4vw,58px);border-bottom:4px solid var(--ink)}
+.msg{text-align:center;min-height:1.5em;color:var(--muted);font-size:clamp(14px,1.1vw,18px)}
+.bb-team{display:flex;flex-direction:column;gap:10px;padding:16px 18px;min-height:0;min-width:0}
+.bb-team.cur::before{border-width:5px}
+.tt{display:flex;gap:6px 12px;align-items:baseline;flex-wrap:wrap}
+.tt b{font-family:var(--display);font-size:clamp(20px,1.8vw,30px)}
+.tt span{color:var(--muted)}
+.tt .ok{color:var(--good);font-weight:700}
+.memo{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+.memo button{padding:5px 0;font-family:var(--num);font-size:clamp(16px,1.3vw,22px);border:1.5px solid var(--line);border-radius:8px;background:var(--white)}
+.memo .x{text-decoration:line-through;color:var(--muted);background:var(--line)}
+.memo .o{background:var(--good-bg);border-color:var(--good);font-weight:700}
+.memo-h{font-size:13px;color:var(--muted);margin-top:-4px}
+.hist{list-style:none;margin:0;padding:0;overflow:auto;flex:1;min-height:90px}
+.hist li{display:grid;grid-template-columns:2.2em auto 1fr;gap:12px;align-items:center;padding:5px 4px;border-bottom:1px solid var(--line)}
+.hist li.empty{display:block;color:var(--muted);border:0}
+.hn{font-family:var(--num);color:var(--muted)}
+.hg{font-family:var(--num);font-size:clamp(24px,2.2vw,38px);letter-spacing:.14em}
+.hr{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.c{font-style:normal;font-weight:700;padding:2px 12px;border-radius:999px;font-size:clamp(15px,1.25vw,21px);white-space:nowrap}
+.c.s{background:var(--good-bg);color:var(--good)}
+.c.b{background:var(--amber-bg);color:var(--amber)}
+.c.out{background:var(--rose);color:var(--bad)}
+.c.win{background:var(--good);color:var(--white)}
+.bbans{font-family:var(--num);font-size:clamp(20px,1.7vw,28px);color:var(--bad)}
+.result{padding:16px 18px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.result b{font-family:var(--display);font-size:clamp(24px,2.3vw,40px)}
+
+/* 오목 */
+.om{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,21vw,330px);gap:18px}
+.om-box{display:flex;align-items:center;justify-content:center;min-height:300px;padding:10px;min-width:0}
+#omCv{display:block;touch-action:none;max-width:100%}
+.side{display:flex;flex-direction:column;gap:14px;padding:18px;min-width:0}
+.side h3{font-family:var(--display);margin:0;font-size:clamp(20px,1.7vw,28px)}
+.stone{display:inline-block;width:.95em;height:.95em;border-radius:50%;border:2px solid var(--ink);vertical-align:-.1em;margin-right:.3em}
+.stone.b{background:var(--ink)}.stone.w{background:var(--white)}
+.big-turn{font-family:var(--display);font-size:clamp(26px,2.4vw,40px);font-weight:700}
+.tally{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:clamp(16px,1.3vw,21px)}
+.tally b{font-family:var(--num);font-size:1.3em;font-variant-numeric:tabular-nums}
+.side .btns{display:flex;flex-direction:column;gap:10px;margin-top:auto}
+.note{font-size:13px;color:var(--muted);margin:0}
+
+/* 추리하기 */
+.lwrap{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(16px,2vw,32px);align-items:start}
+.lleft,.lright{display:flex;flex-direction:column;gap:14px;min-width:0}
+.setup{padding:14px 18px;font-size:clamp(14px,1.1vw,18px);line-height:1.55}
+.setup b{font-family:var(--display)}
+.setup ul{margin:4px 0 0;padding-left:1.1em}
+.conds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.lc{display:grid;grid-template-columns:2em 1fr auto;gap:8px;align-items:baseline;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:8px 4px;font-size:clamp(15px,1.25vw,21px);line-height:1.45}
+.lc .ln{font-family:var(--math);color:var(--muted)}
+.lc.used .lt{text-decoration:line-through;text-decoration-thickness:2px;color:var(--muted)}
+.lc.bad{background:color-mix(in srgb,var(--rose) 55%,transparent)}
+.bd{font-size:.78em;font-weight:700;padding:2px 10px;border-radius:999px;white-space:nowrap}
+.bd.t{background:var(--good-bg);color:var(--good)}.bd.f{background:var(--rose);color:var(--bad)}.bd.u{background:var(--line);color:var(--muted)}
+.lgrid{width:100%;border-collapse:separate;border-spacing:6px;table-layout:fixed}
+.lgrid thead th:first-child{width:6.5em}
+.lgrid th{font-weight:500;color:var(--muted);font-size:clamp(13px,1vw,17px);text-align:center;white-space:nowrap}
+.lgrid tbody th{text-align:right;padding-right:6px}
+.lcell{width:100%;min-height:clamp(52px,4.6vw,78px);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:clamp(16px,1.45vw,25px);font-weight:500;padding:4px}
+.lcell.lnone{color:var(--line)}
+.lcell.lsel::before{border-width:5px}
+.lcell s{font-size:.62em;color:var(--bad);font-weight:400}
+.lcell.lwrong::before{border-color:var(--bad);border-width:4px}
+.lcell.lempty::before{border-style:dashed}
+.palette{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.palette .pl-h{width:100%;font-family:var(--display);font-weight:700;font-size:clamp(15px,1.2vw,20px)}
+.palette button{padding:10px 18px;font-size:clamp(16px,1.35vw,23px);font-weight:500;display:flex;flex-direction:column;align-items:center}
+.palette button small{font-size:.6em;color:var(--muted);font-weight:400}
+.palette button.taken{color:var(--muted)}
+.pl-tip{margin:0;color:var(--muted);font-size:clamp(14px,1.05vw,17px)}
+.chk{color:var(--muted);align-self:center;font-size:clamp(14px,1.1vw,18px)}
+.steps{padding:16px 22px;font-size:clamp(15px,1.25vw,21px);line-height:1.6}
+.steps b{font-family:var(--display)}
+.steps ol{margin:6px 0 0;padding-left:1.3em}
+.steps .note{margin:8px 0 0;color:var(--muted);font-size:.85em}
+@media (max-width:900px){.lwrap{grid-template-columns:1fr}}
+.res-top{display:flex;align-items:center;gap:clamp(16px,2.4vw,40px);flex-wrap:wrap}
+.lbig{font-family:var(--math);font-size:clamp(56px,7vw,120px);line-height:1;font-variant-numeric:tabular-nums}
+.lbig small{font-size:.32em;color:var(--muted)}
+.chips{display:flex;gap:10px;flex-wrap:wrap}
+.chips span{padding:8px 16px;font-size:clamp(15px,1.3vw,21px);font-weight:500}
+.rwrap{overflow-x:auto;min-width:0}
+.locked{padding:clamp(16px,1.8vw,26px) clamp(18px,2vw,30px);font-size:clamp(17px,1.4vw,24px)}
+.steps{padding:16px 22px;font-size:clamp(15px,1.25vw,21px);line-height:1.6}
+.steps b{font-family:var(--display)}
+.steps ol{margin:6px 0 0;padding-left:1.3em}
+.steps .note{margin:8px 0 0;color:var(--muted);font-size:.85em}
+.ctrl{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.ctrl button{padding:12px 22px;font-size:clamp(16px,1.25vw,21px);font-weight:500}
+.ctrl .reveal{font-weight:700;margin-left:auto}
+.rounds{display:flex;gap:8px;flex-wrap:wrap}
+.rounds button{padding:8px 16px;font-size:clamp(14px,1.1vw,18px)}
+.rounds button[aria-pressed="false"]::before{border-color:var(--line);--fill:transparent}
+.lgrid{width:100%;border-collapse:separate;border-spacing:6px;table-layout:fixed}
+.f-white{--fill:#FFFFFF}
+.rule{margin:0;color:var(--muted);font-size:clamp(15px,1.2vw,20px)}
+.ghead .count{font-family:var(--math);color:var(--muted);font-size:clamp(16px,1.3vw,22px);font-variant-numeric:tabular-nums;margin-left:auto}
+.chk{color:var(--muted);align-self:center;font-size:clamp(14px,1.1vw,18px)}
+
+/* 두뇌 퀴즈 */
+.bq-top{display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap}
+.bq-dots{display:flex;gap:6px;flex-wrap:wrap}
+.bq-dot{width:clamp(32px,2.4vw,42px);height:clamp(32px,2.4vw,42px);border-radius:50%;border:2px solid var(--line);background:transparent;font-family:var(--num);font-size:clamp(13px,1vw,17px);color:var(--muted);padding:0}
+.bq-dot.done{background:var(--good-bg);border-color:var(--good);color:var(--ink)}
+.bq-dot.cur{border-color:var(--ink);color:var(--ink);font-weight:700;border-width:3px}
+.bq{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px}
+.bq-card{padding:clamp(18px,2.2vw,34px);display:flex;flex-direction:column;gap:clamp(12px,1.8vh,22px);min-width:0}
+.bq-cat{display:flex;gap:12px;align-items:center}
+.bq-cat span{padding:4px 14px;font-weight:700;font-size:clamp(14px,1.1vw,18px)}
+.bq-cat b{font-family:var(--num);font-size:clamp(22px,1.8vw,30px)}
+.bq-q{margin:0;font-size:clamp(19px,1.7vw,29px);font-weight:500;line-height:1.55;text-wrap:pretty}
+.qm{color:var(--bad);font-weight:700}
+.bq-seq{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-family:var(--num);font-size:clamp(38px,4.2vw,72px)}
+.bq-seq i{font-style:normal;color:var(--muted);font-size:.6em}
+.bq-lines{display:flex;flex-direction:column;align-items:center;font-family:var(--num);font-size:clamp(26px,2.6vw,44px);line-height:1.35;letter-spacing:.12em}
+.bq-pairs{display:grid;grid-template-columns:auto auto auto;justify-content:center;gap:4px 18px;font-family:var(--num);font-size:clamp(28px,2.8vw,48px);line-height:1.3}
+.bq-pairs span:nth-child(3n+1){text-align:right}
+.bq-pairs span:nth-child(3n+2){color:var(--muted)}
+.bq-match{display:flex;flex-direction:column;align-items:center;gap:14px}
+.mt{width:min(100%,520px);height:auto}
+.mt-sol{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
+.mt-sol span{font-weight:700;color:var(--good)}
+.bq-grid{display:grid;grid-template-columns:repeat(3,clamp(64px,7vh,96px));grid-auto-rows:clamp(64px,7vh,96px);justify-content:center}
+.bq-grid span{border:2px solid var(--ink);margin:-1px;display:flex;align-items:center;justify-content:center;font-family:var(--num);font-size:clamp(28px,3.2vh,44px);background:var(--white)}
+.bq-tiles{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.bq-tiles span{width:clamp(56px,5vw,84px);height:clamp(56px,5vw,84px);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:clamp(28px,2.8vw,46px)}
+.bq-dice{display:flex;flex-direction:column;align-items:center}
+.bq-dice span{width:clamp(56px,6vh,80px);height:clamp(56px,6vh,80px);border:2.5px solid var(--ink);border-radius:10px;margin-top:-2.5px;background:var(--white);display:flex;align-items:center;justify-content:center;font-family:var(--num);font-size:clamp(24px,3vh,36px)}
+.bq-text{margin:0;color:var(--muted);font-size:clamp(15px,1.25vw,21px)}
+.bq-hint{margin:0;border-left:4px solid var(--good);padding-left:12px;font-size:clamp(16px,1.35vw,23px)}
+.bq-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.bq-opts{display:grid;grid-template-columns:1fr;gap:10px}
+.bq-opt{display:flex;align-items:center;gap:14px;text-align:left;padding:clamp(10px,1.4vh,18px) 18px;font-size:clamp(17px,1.45vw,25px);font-weight:500}
+.bq-opt .k{font-family:var(--num);color:var(--muted);width:1.2em;flex:none}
+.bq-opt.sel::before{border-width:5px;--fill:var(--lemon)}
+.bq-opt.right::before{--fill:var(--good-bg);border-color:var(--good);border-width:5px}
+.bq-opt.wrong::before{border-color:var(--bad);border-style:dashed}
+.bq-opt:disabled{opacity:1}
+.bq-fb{font-family:var(--display);font-weight:700;font-size:clamp(22px,2vw,34px)}
+.bq-fb.ok{color:var(--good)}.bq-fb.no{color:var(--bad)}
+.steps p{margin:6px 0 0}
+.bq-nav{display:flex;gap:10px;justify-content:space-between;margin-top:auto}
+.bq-reset{align-self:flex-start;font-size:14px;padding:6px 12px}
+.bq .ctrl{margin-top:0}
+
+
+[hidden]{display:none!important}
+/* 랭킹 · 제한 시간 */
+.rk-btn small{font-size:.68em;color:var(--bad);font-weight:500}
+.gtime{font-family:var(--body);font-weight:700;font-size:clamp(15px,1.2vw,20px);padding:6px 14px;border-radius:999px;background:var(--mint);color:var(--good);font-variant-numeric:tabular-nums;white-space:nowrap}
+.gtime.over{background:var(--rose);color:var(--bad)}
+.ov{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--ink) 38%,transparent);display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.ov-box{width:min(720px,100%);max-height:100%;overflow:auto;padding:24px 26px;display:flex;flex-direction:column;gap:12px}
+.ov-box h3{font-family:var(--display);font-size:clamp(24px,2.2vw,36px);margin:0}
+.ov-box p{margin:0;font-size:clamp(15px,1.2vw,19px)}
+.ov-box .slots{margin:4px 0}
+.ov-box .keys button{min-height:clamp(46px,5.5vh,64px);font-size:clamp(22px,2vw,32px)}
+.ov-btns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.rk-games button{padding:6px 12px;font-size:14px}
+.ovwarn{margin:0;padding:8px 14px;border-radius:10px;background:var(--rose);color:var(--bad);font-weight:700;font-size:clamp(16px,1.3vw,20px)}
+.note.warn{color:var(--bad);font-weight:500}
+.rk{list-style:none;margin:0;padding:0}
+.rk li{display:grid;grid-template-columns:2.2em 4.5em 1fr;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:clamp(16px,1.3vw,21px);align-items:baseline}
+.rk li .r{font-family:var(--num);color:var(--muted)}
+.rk li .t{text-align:right;font-variant-numeric:tabular-nums}
+.rk li:nth-child(-n+3) .r{color:var(--ink);font-weight:700}
+.rk li.me{background:var(--lemon)}
+.rk li.empty{display:block;color:var(--muted)}
+.rtab{width:100%;border-collapse:collapse;font-size:clamp(14px,1.15vw,19px)}
+.rtab th{text-align:left;font-weight:500;color:var(--muted);padding:6px 10px;border-bottom:2px solid var(--ink)}
+.rtab td{padding:8px 10px;border-bottom:1px solid var(--line)}
+.ox{font-family:var(--num);font-size:1.4em;font-weight:700}.ox.o{color:var(--good)}.ox.x{color:var(--bad)}
+.bq-dot{display:inline-flex;align-items:center;justify-content:center}
+.bq-dot.miss{background:var(--rose);border-color:var(--bad);color:var(--ink)}
+.bqr-ready{padding:22px 26px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;font-size:clamp(16px,1.35vw,22px);max-width:820px}
+.bqr-ready b{font-family:var(--display);font-size:1.4em}
+.bqr-ready ul{margin:0;padding-left:1.2em;line-height:1.7}
+
+/* 네모 로직 */
+.nn-wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,21vw,320px);gap:18px}
+.nn-board{display:flex;align-items:center;justify-content:center;min-width:0;overflow:auto}
+.nn{border-collapse:collapse}
+.nn th{font-family:var(--num);font-weight:700;color:var(--ink);font-size:calc(var(--cs) * .4);line-height:1.15}
+.nn thead th{vertical-align:bottom;text-align:center;padding:0 0 2px}
+.nn .cc,.nn .rc{background:var(--lav)}
+.nn .rc{text-align:right;padding:0 10px 0 8px;white-space:nowrap}
+.nn .ok{color:var(--muted);opacity:.45;background:var(--paper)}
+.nn td{width:var(--cs);height:var(--cs);padding:0;border:1px solid var(--line)}
+.nn td.b5,.nn th.b5{border-right:2.5px solid var(--ink)}
+.nn tr td.b5r,.nn tr .b5r{border-bottom:2.5px solid var(--ink)}
+.nn tbody{border:2.5px solid var(--ink)}
+.nc{width:100%;height:100%;border:0;background:var(--white);padding:0;display:block;touch-action:manipulation}
+.nc.on{background:var(--ink)}
+.nc.x{background:var(--white);position:relative}
+.nc.x::after{content:"×";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:calc(var(--cs) * .6);line-height:1}
+.nc:disabled{opacity:1;cursor:default}
+
+/* 하노이의 탑 */
+.hn-info{display:flex;gap:10px 22px;align-items:baseline;flex-wrap:wrap;font-size:clamp(17px,1.4vw,24px)}
+.hn-info b{font-family:var(--num);font-size:1.6em}
+.hn-msg{color:var(--bad);font-weight:500}
+.hn-msg.ok{color:var(--good);font-weight:700}
+.hn{flex:1;min-height:260px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.hn-peg{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;background:transparent;border:2px dashed transparent;border-radius:18px;padding:16px 10px 44px}
+.hn-peg.sel{border-color:var(--ink);background:var(--lemon)}
+.hn-peg .rod{position:absolute;left:50%;transform:translateX(-50%);bottom:44px;top:14%;width:12px;border-radius:6px;background:var(--ink);opacity:.75}
+.hn-peg .stack{position:relative;display:flex;flex-direction:column-reverse;align-items:center;width:100%;gap:4px;z-index:1}
+.disk{height:clamp(26px,4.6vh,48px)}
+.disk.lift{transform:translateY(-24px)}
+.hn-peg .base{position:absolute;left:6%;right:6%;bottom:36px;height:10px;border-radius:5px;background:var(--ink)}
+.hn-peg .lbl{position:absolute;bottom:6px;left:0;right:0;text-align:center;color:var(--muted);font-size:clamp(14px,1.1vw,18px)}
+.hn-peg:disabled{opacity:1}
+
+/* 점과 선 */
+.dt-wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,21vw,320px);gap:18px}
+.dt-board{display:flex;align-items:center;justify-content:center;min-width:0;overflow:auto}
+.dt{display:grid}
+.dd{background:var(--ink);border-radius:50%}
+.de{border:0;background:transparent;padding:0;position:relative;touch-action:manipulation}
+.de::after{content:"";position:absolute;background:var(--line);border-radius:6px;opacity:.5}
+.de.h::after{left:0;right:0;top:35%;bottom:35%}
+.de.v::after{top:0;bottom:0;left:35%;right:35%}
+.de.pend::after{opacity:1;background:repeating-linear-gradient(90deg,var(--ink) 0 8px,transparent 8px 14px)}
+.de.v.pend::after{background:repeating-linear-gradient(0deg,var(--ink) 0 8px,transparent 8px 14px)}
+.de.on::after{opacity:1;background:var(--ink)}
+.de.last::after{background:var(--bad)}
+.de:disabled{cursor:default;opacity:1}
+.db{display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:calc(var(--L) * .26);border-radius:6px;margin:4px}
+.db.p0{background:var(--peach)}.db.p1{background:var(--sky)}
+.sw{display:inline-block;width:.9em;height:.9em;border-radius:3px;border:1.5px solid var(--ink);margin-right:.35em;vertical-align:-.08em}
+.sw.p0{background:var(--peach)}.sw.p1{background:var(--sky)}
+
+
+/* 수업 알림 */
+.bell-banner{position:fixed;z-index:70;top:max(14px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:18px;align-items:center;
+  padding:16px 18px 16px 28px;background:var(--ink);color:var(--white);border-radius:18px;box-shadow:0 8px 30px color-mix(in srgb,var(--ink) 35%,transparent);max-width:calc(100% - 32px)}
+.bell-banner b{font-family:var(--display);font-size:clamp(22px,2.4vw,40px)}
+.bell-banner .btn{color:var(--ink)}
+.bell{position:fixed;inset:0;z-index:80;background:color-mix(in srgb,var(--ink) 55%,transparent);display:flex;align-items:center;justify-content:center;padding:16px}
+.bell-box{width:min(820px,100%);padding:clamp(26px,4vh,52px) clamp(24px,3vw,48px);display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.bell-k{margin:0;font-weight:700;letter-spacing:.2em;color:var(--bad)}
+.bell-box h2{font-family:var(--display);font-size:clamp(34px,4.2vw,72px);margin:0;line-height:1.2;word-break:keep-all;text-wrap:balance}
+.bell-box #bellSub{margin:0;font-size:clamp(20px,2vw,32px);font-weight:500;font-variant-numeric:tabular-nums}
+.bell-box{position:relative}
+.bell-x{position:absolute;top:10px;right:12px;width:clamp(52px,4.4vw,68px);height:clamp(52px,4.4vw,68px);border-radius:50%;border:2.5px solid var(--ink);background:var(--white);font-size:clamp(30px,2.6vw,42px);line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0 0 4px}
+.bell-pin{width:min(360px,100%);display:flex;flex-direction:column;gap:10px}
+.bell-pin p{margin:0}
+.bell-pin .keys button{min-height:clamp(44px,5.4vh,62px)}
+
+/* 체스 */
+.ch-wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,22vw,340px);gap:18px}
+.ch-board{display:flex;align-items:center;justify-content:center;min-width:0;overflow:auto}
+.cb{display:grid;grid-template-columns:repeat(8,var(--sq));grid-template-rows:repeat(8,var(--sq));border:3px solid var(--ink)}
+.sq{position:relative;border:0;padding:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.sq.lt{background:var(--white)}.sq.dk{background:var(--lav)}
+.sq.last{box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--lemon) 75%,transparent)}
+.sq.sel{box-shadow:inset 0 0 0 4px var(--ink)}
+.sq.chk{box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--rose) 90%,transparent),inset 0 0 0 4px var(--bad)}
+.sq.to::after{content:"";position:absolute;width:28%;height:28%;border-radius:50%;background:color-mix(in srgb,var(--good) 70%,transparent)}
+.sq.cap::after{content:"";position:absolute;inset:6%;border-radius:50%;border:4px solid color-mix(in srgb,var(--good) 75%,transparent)}
+.sq:disabled{opacity:1;cursor:default}
+.pc{font-family:"Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans",serif;line-height:1;font-size:calc(var(--sq,60px) * .78);position:relative;z-index:1}
+.pc.b{color:var(--ink)}
+.pc.w{color:var(--white);-webkit-text-stroke:1.6px var(--ink);paint-order:stroke fill}
+.sq .rk-l,.sq .fl-l{position:absolute;font-style:normal;font-size:11px;color:var(--muted);font-family:var(--body)}
+.sq .rk-l{left:3px;top:2px}.sq .fl-l{right:4px;bottom:1px}
+.caps{display:flex;flex-direction:column;gap:4px;font-size:15px}
+.caps div{display:flex;flex-wrap:wrap;gap:2px;min-height:30px}
+.caps .pc{font-size:28px}
+.howto{font-size:14px;color:var(--muted)}
+.howto summary{cursor:pointer;font-weight:500}
+.howto ul{margin:6px 0 0;padding-left:1.1em;line-height:1.6}
+.howto b{color:var(--ink)}
+
+
+/* 오델로 */
+.ob{display:grid;grid-template-columns:repeat(8,var(--sq));grid-template-rows:repeat(8,var(--sq));gap:3px;background:var(--ink);border:3px solid var(--ink);border-radius:8px}
+.oq{border:0;padding:0;background:var(--mint);display:flex;align-items:center;justify-content:center;position:relative;touch-action:manipulation}
+.oq:disabled{opacity:1;cursor:default}
+.oq.ok::after{content:"";width:22%;height:22%;border-radius:50%;background:color-mix(in srgb,var(--ink) 35%,transparent)}
+.oq.pend{background:var(--lemon)}.oq.pend::after{display:none}
+.oq.fl{background:var(--rose)}
+.oq.last{box-shadow:inset 0 0 0 3px var(--bad)}
+.os{width:82%;height:82%;border-radius:50%;border:2.5px solid var(--ink)}
+.os.b{background:var(--ink)}.os.w{background:var(--white)}.os.ghost{opacity:.45}
+
+/* 24 만들기 */
+.t24-top{display:flex;gap:18px;flex-wrap:wrap}
+.t24{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,24vw,360px);gap:18px}
+.t24-main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(16px,3vh,34px);padding:20px;min-width:0}
+.t24-cards{display:flex;gap:clamp(10px,1.6vw,24px);flex-wrap:wrap;justify-content:center}
+.t24c{width:clamp(96px,10vw,170px);height:clamp(120px,15vh,200px);font-family:var(--num);font-size:clamp(36px,4.4vw,76px);font-weight:700;font-variant-numeric:tabular-nums}
+.t24c.win::before{--fill:var(--good-bg);border-color:var(--good);border-width:5px}
+.t24c:disabled{opacity:1}
+.t24-ops{display:flex;gap:clamp(10px,1.2vw,18px)}
+.t24o{width:clamp(64px,6vw,96px);height:clamp(64px,6vw,96px);font-size:clamp(30px,3vw,50px);font-weight:700}
+.t24-say{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(22px,2.2vw,36px);text-align:center}
+.t24-log{margin:0;padding-left:1.4em;font-family:var(--num);font-size:clamp(17px,1.4vw,24px);line-height:1.6}
+
+/* 퀴즈 공통 */
+.qz{flex:1;padding:clamp(20px,2.6vw,40px);display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vh,22px);min-height:0}
+.qz-p{margin:0;color:var(--muted);font-size:clamp(16px,1.3vw,22px)}
+.qz-big{text-align:center;line-height:1.3}
+.qz-e{font-family:var(--num);font-size:clamp(48px,5.4vw,96px);font-weight:700;letter-spacing:.02em}
+.qz-k{font-family:var(--display);font-size:clamp(40px,4.4vw,78px);font-weight:700}
+.qz-s{font-family:var(--display);font-size:clamp(28px,3vw,52px);font-weight:700}
+.qz-s u{text-decoration:none;border-bottom:4px solid var(--ink);display:inline-block;min-width:3em}
+.qz-opts{grid-template-columns:repeat(2,minmax(0,1fr));width:min(100%,980px)}
+.qz .ctrl{justify-content:center;margin-top:0}
+.qz .steps{width:min(100%,980px)}
+.sp-ans{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.sp-ans span{width:clamp(38px,3.4vw,58px);height:clamp(48px,4.4vw,72px);border-bottom:4px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:var(--num);font-size:clamp(28px,3vw,48px);font-weight:700}
+.sp-tiles{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:980px}
+.sp-tiles button{width:clamp(48px,4.2vw,72px);height:clamp(48px,4.2vw,72px);font-family:var(--num);font-size:clamp(24px,2.4vw,40px);font-weight:700}
+.wta{width:100%;min-height:40vh;font-family:var(--body);font-size:16px;line-height:1.6;padding:10px 12px;border:1.5px solid var(--ink);border-radius:10px;background:var(--white);color:var(--ink);resize:vertical}
+
+/* 31 게임 */
+.g31{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(12px,1.8vh,24px)}
+.track{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:clamp(4px,.6vw,10px)}
+.nb{aspect-ratio:1;max-width:100%;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--num);font-size:clamp(13px,1.6vw,28px);background:var(--white)}
+.nb.p0{background:var(--peach);border-color:var(--ink)}
+.nb.p1{background:var(--sky);border-color:var(--ink)}
+.nb.new{border-width:4px;font-weight:700}
+.nb.end{border-color:var(--bad);border-style:dashed;color:var(--bad);font-weight:700}
+.nb.end.p0,.nb.end.p1{border-style:solid;background:var(--rose)}
+.g31-mid{display:flex;align-items:center;justify-content:center;gap:16px 28px;flex-wrap:wrap}
+.who-chip{padding:8px 20px;font-family:var(--display);font-weight:700;font-size:clamp(22px,2.2vw,36px)}
+.status{font-family:var(--display);font-size:clamp(24px,2.6vw,46px);font-weight:700;text-align:center}
+.say{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.say button{padding:clamp(14px,2.2vh,26px) 12px;display:flex;flex-direction:column;gap:6px;align-items:center}
+.say b{font-size:clamp(22px,2.2vw,36px)}
+.say small{font-family:var(--num);font-size:clamp(16px,1.4vw,24px);color:var(--muted)}
+.rec{text-align:center;color:var(--muted);font-size:clamp(14px,1.1vw,18px)}
+
+@media (max-width:900px){
+  .bb,.bb.duel,.om,.bq,.nn-wrap,.dt-wrap,.ch-wrap,.t24{grid-template-columns:1fr}
+  .qz-opts{grid-template-columns:1fr}
+  .track{grid-template-columns:repeat(8,minmax(0,1fr))}
+  .say{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="crayon" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="app">
+  <header>
+    <div class="brand"><h1>5반 쉼표</h1><span class="sub">기왕 놀 거면, 머리 쓰며</span><span>만든이 지은T</span></div>
+    <div class="clock"><b id="clock">00:00</b><span id="nextClass">종이 울리면 게임을 끄자.</span></div>
+    <button class="tab sketch f-lav rk-btn" id="rkBtn" type="button">랭킹<small>창을 닫으면 사라져요</small></button>
+    <button class="btn sketch f-paper fs-btn" id="fsBtn" type="button" hidden>전체 화면</button>
+  </header>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <section class="stage sketch f-paper" id="stage"></section>
+</div>
+<div class="bell-banner" id="bellBanner" hidden role="status"><b id="bellBannerTxt">수업 시작 1분 전입니다</b><button class="btn sketch f-white" type="button" id="bellOk">확인</button></div>
+<div class="bell" id="bell" hidden role="alertdialog" aria-modal="true"><div class="bell-box sketch f-lemon">
+  <p class="bell-k">일시정지</p><h2 id="bellTitle">다음 시간 수업 준비!</h2><p id="bellSub"></p>
+  <p class="note" id="bellNote">게임은 멈춰 있고, 제한 시간도 흐르지 않아요.</p>
+  <div class="bell-pin" id="bellPin" hidden></div>
+  <button class="bell-x" id="bellX" type="button" aria-label="창 닫기">×</button></div></div>
+<div class="ov" id="ov" hidden><div class="ov-box sketch f-white" id="ovBox" role="dialog" aria-modal="true"></div></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const stage=$('#stage');
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const store={
+  get(k,d){try{const v=localStorage.getItem('break-arcade-'+k);return v==null?d:JSON.parse(v)}catch(_){return d}},
+  set(k,v){try{localStorage.setItem('break-arcade-'+k,JSON.stringify(v))}catch(_){}}
+};
+const seg=(label,name,items,cur)=>`<div class="seg"><span class="lb">${label}</span>${items.map(([v,t])=>`<button class="sketch f-lemon" type="button" data-seg="${name}" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${t}</button>`).join('')}</div>`;
+function arm(btn,label,done){
+  if(btn.classList.contains('armed')){clearTimeout(btn._t);done();return}
+  btn.classList.add('armed');const old=btn.textContent;btn.textContent=label;
+  btn._t=setTimeout(()=>{btn.classList.remove('armed');btn.textContent=old},3000);
+}
+
+/* ───────── 랭킹 · 제한 시간 (창을 닫으면 사라진다) ───────── */
+const MEM={};
+const sess={
+  get(k,d){try{const v=sessionStorage.getItem('arcade-rk-'+k);return v==null?(k in MEM?MEM[k]:d):JSON.parse(v)}catch(_){return k in MEM?MEM[k]:d}},
+  set(k,v){MEM[k]=v;try{sessionStorage.setItem('arcade-rk-'+k,JSON.stringify(v))}catch(_){}}
+};
+let pausedTotal=0,pauseAt=null;
+const MIN=60000,now=()=>(pauseAt??Date.now())-pausedTotal;
+const mmss=ms=>{const s=Math.max(0,Math.floor(ms/1000));return Math.floor(s/60)+'분 '+String(s%60).padStart(2,'0')+'초'};
+const clockTxt=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const RK={
+  bb3:{game:'baseball',name:'3자리',rule:'시도 횟수가 적을수록 위, 같으면 빨리 맞힌 사람이 위예요. 제한 5분.',limit:5*MIN,key:r=>[r.tries,r.ms],show:r=>`${r.tries}회 · ${mmss(r.ms)}`},
+  bb4:{game:'baseball',name:'4자리',rule:'시도 횟수가 적을수록 위, 같으면 빨리 맞힌 사람이 위예요. 제한 10분.',limit:10*MIN,key:r=>[r.tries,r.ms],show:r=>`${r.tries}회 · ${mmss(r.ms)}`},
+  bq:{game:'brain',name:'랭킹 도전 10문제',rule:'10문제 중 맞힌 수가 많을수록 위예요. 같으면 힌트를 적게 쓴 사람, 그다음 빨리 끝낸 사람이 위예요. 제한 10분.',limit:10*MIN,key:r=>[-r.ok,r.hints,r.ms],show:r=>`${r.ok}/10 · 힌트 ${r.hints}회 · ${mmss(r.ms)}`},
+  omok:{game:'omok',name:'승리 횟수',rule:'이긴 횟수가 많을수록 위예요.',win:true},
+  dots:{game:'dots',name:'승리 횟수',rule:'이긴 횟수가 많을수록 위예요.',win:true},
+  g31:{game:'g31',name:'어려움 컴퓨터 상대',rule:'어려움 컴퓨터를 이긴 횟수가 많을수록 위예요.',win:true},
+};
+function rkDefine(id,def){RK[id]=def}
+function rkCmp(a,b){for(let i=0;i<a.length;i++){if(a[i]!==b[i])return a[i]-b[i]}return 0}
+function rkList(k){return sess.get(k,[])}
+function rkPlace(k,rec){const d=RK[k];if(d.win)return 0;const kk=d.key(rec);return rkList(k).filter(e=>rkCmp(d.key(e),kk)<=0).length}
+function rkAdd(k,id,rec){
+  const d=RK[k];let L=rkList(k);
+  if(d.win){const e=L.find(x=>x.id===id);if(e)e.w++;else L.push({id,w:1});L.sort((a,b)=>b.w-a.w)}
+  else{const old=L.find(x=>x.id===id);
+    if(old&&rkCmp(d.key(old),d.key(rec))<=0){sess.set(k,L);return false}
+    L=L.filter(x=>x.id!==id);L.push({id,...rec});L.sort((a,b)=>rkCmp(d.key(a),d.key(b)));L=L.slice(0,10)}
+  sess.set(k,L);return true;
+}
+/* 제한 시간 표시: 현재 게임의 timer()가 {t0,t1,limit}를 돌려준다 */
+const gtimeHTML=()=>`<span class="gtime" id="gtime"></span>`;
+function gtimeTick(){
+  const el=$('#gtime');if(!el)return;const g=GAMES.find(x=>x.id===curTab).g,t=g.timer&&g.timer();
+  if(!t){el.textContent='';el.hidden=true;return}el.hidden=false;
+  const over=t.t0&&((t.t1||now())-t.t0)>t.limit;el.classList.toggle('over',!!over);
+  if(!t.t0)el.textContent=`제한 ${clockTxt(t.limit)} · 첫 입력부터 재요`;
+  else if(t.t1)el.textContent=`기록 ${mmss(t.t1-t.t0)}${over?' · 제한 시간 초과':''}`;
+  else el.textContent=over?'제한 시간 초과 · 랭킹 제외':`남은 시간 ${clockTxt(t.limit-(now()-t.t0))}`;
+}
+setInterval(gtimeTick,250);
+const within=(t0,t1,limit)=>t0&&t1&&(t1-t0)<=limit;
+
+/* 오버레이: 랭킹 등록과 랭킹 보기 */
+const ov=$('#ov'),ovBox=$('#ovBox');let ovState=null;
+const NOTICE='랭킹은 이 창을 닫으면 사라져요. 새로고침해도 남아요.';
+function ovClose(){ov.hidden=true;ovState=null}
+function rkEntry(k,rec,headline){
+  const d=RK[k],place=rkPlace(k,rec);
+  if(!d.win&&place>=10){ovState={mode:'msg',headline,msg:`${d.show(rec)} · 10위 안에 들지 못했어요. 다시 도전해 봐요.`,k};ovRender();return}
+  ovState={mode:'entry',k,rec,headline,id:'',place};ovRender();
+}
+function rkBoard(game,k){
+  if(!game)game=curTab;const keys=Object.keys(RK).filter(x=>RK[x].game===game);
+  ovState={mode:'board',game,keys,k:k&&keys.includes(k)?k:keys[0]};ovRender();
+}
+function ovRender(){
+  const s=ovState;if(!s){ov.hidden=true;return}ov.hidden=false;
+  if(s.mode==='msg'){ovBox.innerHTML=`<h3>${s.headline}</h3><p>${s.msg}</p><div class="ov-btns"><button class="btn sketch f-lav" type="button" data-ov="board">랭킹 보기</button><button class="btn sketch f-mint" type="button" data-ov="close">닫기</button></div><p class="note">${NOTICE}</p>`;return}
+  if(s.mode==='words'){
+    if(!s.ok){ovBox.innerHTML=`<h3>단어 목록 바꾸기</h3><p>선생님 비밀번호를 입력해 주세요.</p>
+      <div class="slots">${[0,1,2,3].map(i=>`<span class="slot">${s.pin[i]?'●':''}</span>`).join('')}</div>${s.warn?`<p class="ovwarn">${s.warn}</p>`:''}
+      <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" class="sketch f-white" data-wk="${n}">${n}</button>`).join('')}
+      <button type="button" class="sketch f-paper fn" data-ov="close">닫기</button><button type="button" class="sketch f-white" data-wk="0">0</button><button type="button" class="sketch f-paper fn" data-wk="del">지우기</button></div>`;return}
+    ovBox.innerHTML=`<h3>단어 목록 바꾸기</h3>
+      <p class="note">한 줄에 <b>영어 단어,뜻</b> 하나씩 쓴다. 엑셀이나 한글에서 두 칸을 복사해 붙여 넣어도 된다. 8개 이상 필요하다. 같은 단어나 같은 뜻이 겹치면 하나만 쓴다.</p>
+      <textarea id="wordsTa" class="wta" spellcheck="false">${WORDS.map(x=>x.join(',')).join('\n')}</textarea>
+      ${s.warn?`<p class="ovwarn">${s.warn}</p>`:''}<p class="note">지금 ${WORDS.length}개 · ${wordsCustom?'선생님이 넣은 목록':'기본 목록'} · 이 목록은 창을 닫아도 이 칠판에 남는다.</p>
+      <div class="ov-btns"><button class="btn sketch f-paper ghost" type="button" data-ov="wreset">기본 단어로 되돌리기</button><button class="btn sketch f-paper" type="button" data-ov="close">닫기</button><button class="btn sketch f-mint" type="button" data-ov="wsave">저장</button></div>`;return}
+  if(s.mode==='entry'){const d=RK[s.k];
+    const cur=d.win?(rkList(s.k).find(x=>x.id===s.id)||{w:0}).w:null;
+    ovBox.innerHTML=`<h3>${s.headline}</h3>
+      <p>${d.win?'이긴 사람의 학번 4자리를 입력해 주세요.':`기록 <b>${d.show(s.rec)}</b> · 지금 등록하면 <b>${s.place+1}위</b>예요. 학번 4자리를 입력해 주세요.`}</p>
+      <div class="slots">${[0,1,2,3].map(i=>`<span class="slot">${s.id[i]||''}</span>`).join('')}</div>
+      ${s.warn?`<p class="ovwarn" role="alert">${s.warn}</p>`:''}
+      ${d.win&&s.id.length===4?`<p class="note">${s.id} 지금 ${cur}승이에요. 등록하면 ${cur+1}승이 돼요.</p>`:''}
+      <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" class="sketch f-white" data-ovk="${n}">${n}</button>`).join('')}
+        <button type="button" class="sketch f-paper fn" data-ovk="del">지우기</button><button type="button" class="sketch f-white" data-ovk="0">0</button>
+        <button type="button" class="sketch f-mint fn" data-ovk="ok">등록</button></div>
+      <div class="ov-btns"><button class="btn sketch f-paper ghost" type="button" data-ov="close">등록하지 않기</button></div>
+      <p class="note">${NOTICE}</p>`;return}
+  const k=s.k,d=RK[k],L=rkList(k);
+  const gtitle=id=>GAMES.find(x=>x.id===id).title;
+  ovBox.innerHTML=`<h3>랭킹 · ${gtitle(s.game)}</h3>
+    <div class="seg rk-games"><span class="lb">게임</span>${GAMES.filter(x=>Object.values(RK).some(d=>d.game===x.id)).map(x=>`<button class="sketch f-paper" type="button" data-ovg="${x.id}" aria-pressed="${x.id===s.game}">${x.title}</button>`).join('')}</div>
+    ${s.keys.length>1?`<div class="seg"><span class="lb">종목</span>${s.keys.map(x=>`<button class="sketch f-lemon" type="button" data-ovt="${x}" aria-pressed="${x===k}">${RK[x].name}</button>`).join('')}</div>`:''}
+    <p class="note">${d.rule}</p>
+    <ol class="rk">${L.length?L.map((e,i)=>`<li class="${s.hi===e.id?'me':''}"><span class="r">${i+1}</span><span>${e.id}</span><span class="t">${d.win?e.w+'승':d.show(e)}</span></li>`).join(''):'<li class="empty">아직 기록이 없어요.</li>'}</ol>
+    <p class="note warn">${NOTICE}</p>
+    <div class="ov-btns"><button class="btn sketch f-paper ghost" type="button" data-ov="clear">이 랭킹 지우기</button><button class="btn sketch f-mint" type="button" data-ov="close">닫기</button></div>`;
+}
+ov.addEventListener('click',e=>{
+  if(e.target===ov){ovClose();return}
+  const t=e.target.closest('button');if(!t||t.disabled||!ovState)return;const s=ovState;
+  if(t.dataset.ov==='close'){ovClose();return}
+  if(t.dataset.ov==='board'){rkBoard(RK[s.k].game,s.k);return}
+  if(t.dataset.ov==='clear'){arm(t,'한 번 더 누르면 지운다',()=>{sess.set(s.k,[]);ovRender()});return}
+  if(t.dataset.ovt){s.k=t.dataset.ovt;s.hi=null;ovRender();return}
+  if(t.dataset.wk){const v=t.dataset.wk;if(v==='del')s.pin=s.pin.slice(0,-1);else if(s.pin.length<4)s.pin+=v;s.warn='';
+    if(s.pin.length===4){if(pinHash(s.pin)===PIN_H){s.ok=true}else{s.pin='';s.warn='비밀번호가 맞지 않아요.'}}ovRender();return}
+  if(t.dataset.ov==='wsave'){const p=parseWords($('#wordsTa').value);
+    if(p.length<8){s.warn=`쓸 수 있는 단어가 ${p.length}개뿐이에요. ‘단어,뜻’ 형식으로 8개 이상 써 주세요.`;const keep=$('#wordsTa').value;ovRender();$('#wordsTa').value=keep;return}
+    WORDS=p;wordsCustom=true;try{localStorage.setItem('break-arcade-words',p.map(x=>x.join(',')).join('\n'))}catch(_){}
+    ovClose();if(curTab==='word')WORDQ.rerender();return}
+  if(t.dataset.ov==='wreset'){arm(t,'한 번 더 누르면 되돌린다',()=>{WORDS=parseWords(WORDS_DEFAULT);wordsCustom=false;try{localStorage.removeItem('break-arcade-words')}catch(_){}ovRender()});return}
+  if(t.dataset.ovg){rkBoard(t.dataset.ovg);return}
+  if(t.dataset.ovk)ovInput(t.dataset.ovk);
+});
+/* 학번: 학년(1~3) + 반(1~6) + 번호(01~40) 네 자리만 받는다 */
+const isHakbun=id=>/^[1-3][1-6](0[1-9]|[1-3][0-9]|40)$/.test(id);
+const WARN='학번만 쓸 수 있어요.';
+function ovInput(v){
+  const s=ovState;if(!s||s.mode!=='entry')return;
+  if(v==='del'){s.id=s.id.slice(0,-1);s.warn=''}
+  else if(v==='ok'){
+    if(s.id.length<4)s.warn='학번 4자리를 모두 입력해 주세요.';
+    else if(!isHakbun(s.id))s.warn=WARN+' (예: 1503)';
+    else{const k=s.k,id=s.id;rkAdd(k,id,s.rec);rkBoard(RK[k].game,k);ovState.hi=id;ovRender();return}
+  }
+  else if(/^\d$/.test(v)){if(s.id.length<4){s.id+=v;s.warn=''}else s.warn='학번은 4자리예요.'}
+  else s.warn=WARN;
+  ovRender();
+}
+function ovKey(e){
+  if(e.key==='Escape'){ovClose();return}
+  if(!ovState||ovState.mode!=='entry')return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(/^\d$/.test(e.key))ovInput(e.key);
+  else if(e.key==='Backspace')ovInput('del');
+  else if(e.key==='Enter')ovInput('ok');
+  else if(e.key.length===1||e.key==='Process'||e.isComposing)ovInput('bad');
+  else return;
+  e.preventDefault();
+}
+
+/* ───────── 수업 알림 · 일시정지 (소리 없음) ───────── */
+/* 강릉제일고 교시 시각. 수요일은 6교시까지 */
+const BELL=[['08:40','09:30'],['09:40','10:30'],['10:40','11:30'],['11:40','12:30'],['13:30','14:20'],['14:30','15:20'],['15:40','16:30']];
+const hm=s=>{const[a,b]=s.split(':').map(Number);return a*60+b};
+function todayPeriods(d){const w=d.getDay();if(w<1||w>5)return[];return (w===3?BELL.slice(0,6):BELL).map(([s,e],i)=>({no:i+1,s:hm(s)*60,e:hm(e)*60,sTxt:s}))}
+let bellUnlock=null,bellBannerOff=null,bellMode='',bellPreOff=null,bellPinOn=false,bellPinVal='',bellPinMsg='';
+const bellEl=$('#bell'),bannerEl=$('#bellBanner');
+function bellState(){
+  const d=new Date(),t=d.getHours()*3600+d.getMinutes()*60+d.getSeconds(),P=todayPeriods(d);
+  for(const p of P){
+    if(t>=p.s-30&&t<p.e)return{mode:'lock',p,left:p.s-t};
+    if(t>=p.s-60&&t<p.s-30)return{mode:'banner',p,left:p.s-t};
+  }
+  const next=P.find(p=>p.s-60>t);return{mode:'',next,none:!P.length};
+}
+function bellTick(){
+  const s=bellState();
+  const nx=$('#nextClass');
+  if(nx){const n=s.mode?s.p:s.next;nx.textContent=n?`${s.mode==='lock'&&s.left<=0?'지금':'다음'} 수업 ${n.no}교시 ${n.sTxt}`:s.none?'오늘은 수업이 없어요.':'오늘 수업은 모두 끝났어요.'}
+  /* 1분 전 알림 */
+  const showBanner=s.mode==='banner'&&bellBannerOff!==s.p.no;
+  bannerEl.hidden=!showBanner;
+  if(showBanner)$('#bellBannerTxt').textContent=`수업 시작 1분 전입니다 · ${s.p.no}교시 ${s.p.sTxt}`;
+  /* 30초 전부터 수업 끝까지 일시정지 */
+  const lock=s.mode==='lock'&&bellUnlock!==s.p.no&&!(s.left>0&&bellPreOff===s.p.no);
+  if(lock&&bellMode!=='lock'){gamePause(true)}
+  if(!lock&&bellMode==='lock'){gamePause(false)}
+  bellMode=lock?'lock':'';
+  bellEl.hidden=!lock;
+  if(lock){
+    $('#bellTitle').textContent=s.left>0?'다음 시간 수업 준비!':`${s.p.no}교시 수업 중이에요`;
+    $('#bellSub').textContent=s.left>0?`${s.p.no}교시 ${s.p.sTxt} 시작 · ${s.left}초 남았어요`:'쉬는 시간이 되면 다시 열려요.';
+    if(s.left>0&&bellPinOn){bellPinOn=false}
+    $('#bellNote').textContent=s.left>0?'게임은 멈춰 있고, 제한 시간도 흐르지 않아요. 오른쪽 위 ×를 누르면 닫혀요.':'수업 시간에는 선생님 비밀번호를 입력해야 닫혀요.';
+    bellPinRender();
+  }else if(bellPinOn){bellPinOn=false;bellPinRender()}
+  if(s.mode===''){bellUnlock=null;bellBannerOff=null;bellPreOff=null}
+}
+/* 게임 시계: 일시정지 동안 멈춘다. 모든 제한 시간이 이 시계를 쓴다 */
+function gamePause(on){
+  if(on&&pauseAt==null){pauseAt=Date.now();if(!ov.hidden)ovClose()}
+  if(!on&&pauseAt!=null){pausedTotal+=Date.now()-pauseAt;pauseAt=null}
+}
+$('#bellOk').addEventListener('click',()=>{const s=bellState();if(s.mode==='banner')bellBannerOff=s.p.no;bannerEl.hidden=true});
+/* 닫기: 수업 직전(30초 전~시작)은 누구나, 수업 중에는 선생님 비밀번호 */
+const PIN_H='41nu';/* 비밀번호를 그대로 적지 않고 변환한 값 */
+const pinHash=s=>{let x=7;for(const c of s)x=(x*131+c.charCodeAt(0)*17+11)%1000003;return x.toString(36)};
+function bellPinRender(){
+  const el=$('#bellPin');el.hidden=!bellPinOn;if(!bellPinOn)return;
+  el.innerHTML=`<p><b>선생님 비밀번호</b></p>
+    <div class="slots">${[0,1,2,3].map(i=>`<span class="slot">${bellPinVal[i]?'●':''}</span>`).join('')}</div>
+    ${bellPinMsg?`<p class="ovwarn">${bellPinMsg}</p>`:''}
+    <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" class="sketch f-white" data-pin="${n}">${n}</button>`).join('')}
+      <button type="button" class="sketch f-paper fn" data-pin="cancel">취소</button><button type="button" class="sketch f-white" data-pin="0">0</button>
+      <button type="button" class="sketch f-paper fn" data-pin="del">지우기</button></div>`;
+}
+$('#bellX').addEventListener('click',()=>{
+  const s=bellState();if(s.mode!=='lock')return;
+  if(s.left>0){bellPreOff=s.p.no;bellTick();return}
+  bellPinOn=true;bellPinVal='';bellPinMsg='';bellPinRender();
+});
+$('#bellPin').addEventListener('click',e=>{
+  const t=e.target.closest('[data-pin]');if(!t)return;const v=t.dataset.pin;
+  if(v==='cancel'){bellPinOn=false;bellPinRender();return}
+  if(v==='del'){bellPinVal=bellPinVal.slice(0,-1);bellPinMsg=''}
+  else if(bellPinVal.length<4){bellPinVal+=v;bellPinMsg=''}
+  if(bellPinVal.length===4){
+    if(pinHash(bellPinVal)===PIN_H){const s=bellState();if(s.mode==='lock')bellUnlock=s.p.no;bellPinOn=false;bellPinVal='';bellTick();return}
+    bellPinVal='';bellPinMsg='비밀번호가 맞지 않아요.';
+  }
+  bellPinRender();
+});
+setInterval(bellTick,1000);
+
+/* ───────── 1. 숫자야구 ───────── */
+const BBset={digits:3,mode:'solo'};let bb=null;
+const secret=n=>shuffle([...'0123456789']).slice(0,n).join('');
+function judgeBB(sec,g){let s=0,b=0;for(let i=0;i<g.length;i++){if(sec[i]===g[i])s++;else if(sec.includes(g[i]))b++}return{s,b}}
+function bbNew(){bb={digits:BBset.digits,mode:BBset.mode,turn:0,entry:'',over:false,result:'',msg:'',t0:null,t1:null,
+  teams:(BBset.mode==='duel'?[0,1]:[0]).map(()=>({secret:secret(BBset.digits),hist:[],memo:Array(10).fill(0),solved:false}))}}
+function chips(h,n){if(h.s===n)return `<em class="c win">${n}S 정답</em>`;
+  if(!h.s&&!h.b)return `<em class="c out">아웃</em>`;
+  return (h.s?`<em class="c s">${h.s}S</em>`:'')+(h.b?`<em class="c b">${h.b}B</em>`:'')}
+function bbTeam(k){
+  const T=bb.teams[k],duel=bb.mode==='duel',cur=duel&&bb.turn===k&&!bb.over;
+  return `<section class="bb-team sketch ${duel?(k?'f-sky':'f-peach'):'f-white'}${cur?' cur':''}">
+    <div class="tt"><b>${duel?(k?'B팀':'A팀'):'시도 기록'}</b><span>${T.hist.length}회</span>${T.solved?'<span class="ok">정답</span>':''}${cur?'<span class="ok">차례</span>':''}</div>
+    <div class="memo">${T.memo.map((m,d)=>`<button type="button" data-memo="${k}|${d}" class="${m===1?'x':m===2?'o':''}" aria-label="숫자 ${d} 메모">${d}</button>`).join('')}</div>
+    <div class="memo-h">숫자 메모: 한 번 누르면 없는 숫자(줄), 두 번 누르면 있는 숫자(초록)</div>
+    <ol class="hist">${T.hist.length?T.hist.map((h,i)=>`<li><span class="hn">${i+1}</span><span class="hg">${h.g}</span><span class="hr">${chips(h,bb.digits)}</span></li>`).reverse().join(''):'<li class="empty">아직 시도가 없다.</li>'}</ol>
+    ${bb.over&&!T.solved?`<div class="bbans">정답 ${T.secret}</div>`:''}
+  </section>`;
+}
+function bbPad(){
+  const duel=bb.mode==='duel';
+  if(bb.over){
+    return `<section class="bb-pad"><div class="result sketch f-lemon"><b>${bb.result}</b>${bb.sub?`<span>${bb.sub}</span>`:''}
+      <button class="btn big sketch f-mint" type="button" data-act="bbnew">새 게임</button></div></section>`;
+  }
+  const keys=[1,2,3,4,5,6,7,8,9].map(d=>`<button type="button" class="sketch f-white" data-key="${d}" ${bb.entry.includes(String(d))?'disabled':''}>${d}</button>`).join('')
+    +`<button type="button" class="sketch f-paper fn" data-key="del">지우기</button>`
+    +`<button type="button" class="sketch f-white" data-key="0" ${bb.entry.includes('0')?'disabled':''}>0</button>`
+    +`<button type="button" class="sketch f-mint fn" data-key="ok" ${bb.entry.length<bb.digits?'disabled':''}>확인</button>`;
+  return `<section class="bb-pad">
+    <div class="turn">${duel?(bb.turn?'B팀':'A팀')+' 차례':'숫자를 입력하자'}</div>
+    <div class="slots">${range(0,bb.digits-1).map(i=>`<span class="slot">${bb.entry[i]||''}</span>`).join('')}</div>
+    <div class="keys">${keys}</div>
+    <div class="msg">${bb.msg||''}</div>
+  </section>`;
+}
+function renderBB(){
+  stage.innerHTML=`<div class="ghead"><h2>숫자야구</h2><p>컴퓨터가 정한 서로 다른 숫자를 맞히자. 숫자와 자리가 맞으면 스트라이크(S), 숫자만 맞으면 볼(B), 하나도 없으면 아웃이다.</p></div>
+   <div class="opts">${seg('자릿수','bbd',[[3,'3자리'],[4,'4자리']],BBset.digits)}${seg('방식','bbm',[['solo','혼자 도전'],['duel','2팀 대결']],BBset.mode)}
+     <button class="btn sketch f-paper ghost" type="button" data-act="bbnew">새 게임</button>
+     ${bb.mode==='solo'&&!bb.over?`<button class="btn sketch f-paper ghost" type="button" data-act="bbgive">포기하고 정답 보기</button>`:''}
+     ${bb.mode==='solo'?gtimeHTML()+'<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button>':'<span class="note">A팀부터 번갈아 입력한다. 두 팀은 서로 다른 숫자를 맞힌다. 2팀 대결은 랭킹에 오르지 않아요.</span>'}</div>
+   <div class="bb ${bb.mode}">${bb.mode==='duel'?bbTeam(0)+bbPad()+bbTeam(1):bbPad()+bbTeam(0)}</div>`;
+}
+function bbSubmit(){
+  if(bb.over||bb.entry.length<bb.digits)return;
+  const k=bb.mode==='duel'?bb.turn:0,T=bb.teams[k],g=bb.entry,r=judgeBB(T.secret,g);
+  T.hist.push({g,...r});bb.entry='';bb.msg='';
+  if(r.s===bb.digits)T.solved=true;
+  if(bb.mode==='solo'){
+    if(T.solved){bb.over=true;bb.t1=now();const n=T.hist.length,k='bb'+bb.digits;
+      bb.result=`정답! ${n}번 만에 맞혔다.`;bb.sub=within(bb.t0,bb.t1,RK[k].limit)?`걸린 시간 ${mmss(bb.t1-bb.t0)}`:'제한 시간을 넘겨 랭킹에는 오르지 않아요.';
+      renderBB();if(within(bb.t0,bb.t1,RK[k].limit))rkEntry(k,{tries:n,ms:bb.t1-bb.t0},`정답! ${n}번 만에 맞혔다.`);return}
+  }else{
+    const A=bb.teams[0],B=bb.teams[1];
+    if(k===0){bb.turn=1;if(A.solved)bb.msg='A팀 정답. B팀이 이번에 맞히면 무승부이다.'}
+    else{
+      if(A.solved){bb.over=true;bb.result=B.solved?'무승부':'A팀 승리';bb.sub=`${A.hist.length}번째 시도에서 결정되었다.`}
+      else if(B.solved){bb.over=true;bb.result='B팀 승리';bb.sub=`${B.hist.length}번 만에 맞혔다.`}
+      else bb.turn=0;
+    }
+  }
+  renderBB();
+}
+const BASEBALL={
+  mount(){if(!bb||bb.digits!==BBset.digits||bb.mode!==BBset.mode)bbNew();renderBB();gtimeTick()},
+  timer(){return bb&&bb.mode==='solo'?{t0:bb.t0,t1:bb.t1,limit:RK['bb'+bb.digits].limit}:null},
+  click(t){
+    if(t.dataset.seg==='bbd'){BBset.digits=+t.dataset.v;bbNew();renderBB();return}
+    if(t.dataset.seg==='bbm'){BBset.mode=t.dataset.v;bbNew();renderBB();return}
+    if(t.dataset.act==='bbnew'){bbNew();renderBB();return}
+    if(t.dataset.act==='bbgive'){bb.over=true;bb.t0=null;bb.result=`정답은 ${bb.teams[0].secret}이다.`;bb.sub='';renderBB();return}
+    if(t.dataset.memo){const[k,d]=t.dataset.memo.split('|').map(Number);const m=bb.teams[k].memo;m[d]=(m[d]+1)%3;renderBB();return}
+    if(t.dataset.key){const v=t.dataset.key;
+      if(v==='del')bb.entry=bb.entry.slice(0,-1);
+      else if(v==='ok'){bbSubmit();return}
+      else if(bb.entry.length<bb.digits&&!bb.entry.includes(v)){bb.entry+=v;if(!bb.t0&&bb.mode==='solo')bb.t0=now()}
+      renderBB();}
+  },
+  key(e){if(!bb||bb.over)return;
+    if(/^[0-9]$/.test(e.key)&&bb.entry.length<bb.digits&&!bb.entry.includes(e.key)){bb.entry+=e.key;if(!bb.t0&&bb.mode==='solo')bb.t0=now();renderBB()}
+    else if(e.key==='Backspace'){bb.entry=bb.entry.slice(0,-1);renderBB()}
+    else if(e.key==='Enter')bbSubmit();}
+};
+
+/* ───────── 2. 오목 ───────── */
+const N=15;const OM={b:null,moves:[],turn:1,over:false,win:null,score:{1:0,2:0},preview:null,msg:''};
+function omNew(){OM.b=Array.from({length:N},()=>Array(N).fill(0));OM.moves=[];OM.turn=1;OM.over=false;OM.win=null;OM.preview=null;OM.msg=''}
+let omRO=null,omSize=0;
+function omWin(x,y,c){
+  for(const[dx,dy]of[[1,0],[0,1],[1,1],[1,-1]]){
+    const line=[[x,y]];
+    for(const s of[1,-1]){let i=x+dx*s,j=y+dy*s;while(i>=0&&i<N&&j>=0&&j<N&&OM.b[j][i]===c){line.push([i,j]);i+=dx*s;j+=dy*s}}
+    if(line.length>=5)return line;
+  }return null;
+}
+function omDraw(){
+  const cv=$('#omCv');if(!cv)return;const dpr=window.devicePixelRatio||1,s=omSize;
+  cv.width=s*dpr;cv.height=s*dpr;cv.style.width=s+'px';cv.style.height=s+'px';
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,s,s);
+  const cs=getComputedStyle(document.documentElement),ink=cs.getPropertyValue('--ink').trim(),white=cs.getPropertyValue('--white').trim(),
+    bad=cs.getPropertyValue('--bad').trim(),good=cs.getPropertyValue('--good').trim();
+  const cell=s/(N+1),P=i=>(i+1)*cell;
+  ctx.strokeStyle=ink;ctx.globalAlpha=.55;ctx.lineWidth=1.2;
+  for(let i=0;i<N;i++){ctx.beginPath();ctx.moveTo(P(0),P(i));ctx.lineTo(P(N-1),P(i));ctx.stroke();ctx.beginPath();ctx.moveTo(P(i),P(0));ctx.lineTo(P(i),P(N-1));ctx.stroke()}
+  ctx.globalAlpha=1;ctx.fillStyle=ink;
+  for(const[i,j]of[[3,3],[3,11],[7,7],[11,3],[11,11]]){ctx.beginPath();ctx.arc(P(i),P(j),cell*.09,0,7);ctx.fill()}
+  const stone=(i,j,c,a)=>{ctx.globalAlpha=a;ctx.beginPath();ctx.arc(P(i),P(j),cell*.43,0,7);ctx.fillStyle=c===1?ink:white;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=ink;ctx.stroke();ctx.globalAlpha=1};
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(OM.b[j][i])stone(i,j,OM.b[j][i],1);
+  if(OM.preview&&!OM.over)stone(OM.preview[0],OM.preview[1],OM.turn,.4);
+  const last=OM.moves[OM.moves.length-1];
+  if(last){ctx.fillStyle=bad;ctx.beginPath();ctx.arc(P(last[0]),P(last[1]),cell*.13,0,7);ctx.fill()}
+  if(OM.win){ctx.strokeStyle=good;ctx.lineWidth=4;for(const[i,j]of OM.win){ctx.beginPath();ctx.arc(P(i),P(j),cell*.47,0,7);ctx.stroke()}}
+}
+function omSide(){
+  const name=c=>c===1?'흑':'백',st=c=>`<span class="stone ${c===1?'b':'w'}"></span>`;
+  return `<h3>${OM.over?'경기 끝':'지금 차례'}</h3>
+   <div class="big-turn">${OM.over?(OM.win?st(OM.turn)+name(OM.turn)+' 승리':'무승부'):st(OM.turn)+name(OM.turn)}</div>
+   <p class="note">${OM.over?'':'두고 싶은 자리를 누르면 흐린 돌이 보인다. 같은 자리를 한 번 더 누르면 돌이 놓인다.'}</p>
+   <div class="tally"><span>${st(1)}흑 승리</span><b>${OM.score[1]}</b><span>${st(2)}백 승리</span><b>${OM.score[2]}</b></div>
+   <p class="note">${OM.msg}</p>
+   <div class="btns">
+     <button class="btn sketch f-paper" type="button" data-act="omundo" ${!OM.moves.length||OM.over?'disabled':''}>한 수 무르기</button>
+     <button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button>
+     <button class="btn sketch f-mint" type="button" data-act="omnew">새 판</button>
+   </div>`;
+}
+function omRenderSide(){const s=$('#omSide');if(s)s.innerHTML=omSide()}
+function omFit(){const box=$('#omBox');if(!box)return;omSize=Math.max(200,Math.floor(Math.min(box.clientWidth,box.clientHeight)-20));omDraw()}
+function omTap(e){
+  if(OM.over)return;const cv=e.currentTarget,r=cv.getBoundingClientRect(),cell=omSize/(N+1);
+  const x=(e.clientX-r.left)/cell-1,y=(e.clientY-r.top)/cell-1,i=Math.round(x),j=Math.round(y);
+  if(i<0||j<0||i>=N||j>=N||Math.hypot(x-i,y-j)>.48||OM.b[j][i])return;
+  if(OM.preview&&OM.preview[0]===i&&OM.preview[1]===j){
+    OM.b[j][i]=OM.turn;OM.moves.push([i,j]);OM.preview=null;OM.msg='';
+    const w=omWin(i,j,OM.turn);
+    if(w){OM.over=true;OM.win=w;OM.score[OM.turn]++;setTimeout(()=>rkEntry('omok',null,`${OM.turn===1?'흑':'백'} 승리!`),400)}
+    else if(OM.moves.length===N*N){OM.over=true}
+    else OM.turn=3-OM.turn;
+    omRenderSide();
+  }else OM.preview=[i,j];
+  omDraw();
+}
+const OMOK={
+  mount(){if(!OM.b)omNew();
+    stage.innerHTML=`<div class="ghead"><h2>오목</h2><p>흑과 백이 번갈아 돌을 놓는다. 가로·세로·대각선 중 한 방향으로 다섯 개 이상을 먼저 이으면 승리한다. 흑이 먼저 둔다.</p></div>
+     <div class="om"><div class="om-box sketch f-lemon" id="omBox"><canvas id="omCv" aria-label="오목판"></canvas></div><aside class="side sketch f-white" id="omSide">${omSide()}</aside></div>`;
+    $('#omCv').addEventListener('pointerdown',omTap);
+    omRO=new ResizeObserver(omFit);omRO.observe($('#omBox'));omFit();
+  },
+  unmount(){if(omRO){omRO.disconnect();omRO=null}},
+  click(t){
+    if(t.dataset.act==='omnew'){omNew();omRenderSide();omDraw()}
+    if(t.dataset.act==='omundo'&&OM.moves.length&&!OM.over){const[i,j]=OM.moves.pop();OM.b[j][i]=0;OM.turn=3-OM.turn;OM.preview=null;OM.msg='한 수를 물렀다.';omRenderSide();omDraw()}
+  }
+};
+
+/* ───────── 추리하기 (명제 대결에서 옮김) ───────── */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LOGIC=[
+ {id:'locker',name:'사물함 추리',level:'연습',cols:['1번 사물함','2번 사물함','3번 사물함'],
+  setup:['사물함 세 칸이 왼쪽부터 1, 2, 3번으로 나란히 있다.','민준, 서준, 지호가 한 칸씩 쓴다.','세 학생의 동아리(코딩, 축구, 밴드)와 좋아하는 과목(수학, 영어, 과학)은 모두 다르다.'],
+  rows:[{a:'이름',label:'이름',v:['민준','서준','지호']},{a:'동아리',label:'동아리',v:['코딩','축구','밴드']},{a:'과목',label:'좋아하는 과목',v:['수학','영어','과학']}],
+  conds:[
+   {t:'민준의 사물함은 가운데이다.',c:{k:'at',a:'이름',v:'민준',i:1}},
+   {t:'밴드 동아리 학생의 사물함은 맨 왼쪽이다.',c:{k:'at',a:'동아리',v:'밴드',i:0}},
+   {t:'코딩 동아리 학생의 옆 사물함은 밴드 동아리 학생이 쓴다.',c:{k:'next',a:'동아리',v:'코딩',b:'동아리',w:'밴드'}},
+   {t:'축구 동아리 학생은 과학을 좋아한다.',c:{k:'same',a:'동아리',v:'축구',b:'과목',w:'과학'}},
+   {t:'지호는 영어를 좋아한다.',c:{k:'same',a:'이름',v:'지호',b:'과목',w:'영어'}},
+  ],
+  sol:{'이름':['지호','민준','서준'],'동아리':['밴드','코딩','축구'],'과목':['영어','수학','과학']},
+  steps:['조건 2 → 1번 사물함은 밴드 동아리이다.','조건 3 → 코딩 동아리는 밴드(1번)의 옆인 2번이다. 남은 축구 동아리는 3번이다.','조건 4 → 3번 학생은 과학을 좋아한다.','조건 1 → 2번은 민준이다.','조건 5 → 지호는 영어를 좋아하므로 과학을 좋아하는 3번이 아니다. 지호는 1번, 서준은 3번이다.','남은 과목을 채운다. 1번 영어, 2번 수학']},
+ {id:'snack',name:'간식 줄 추리',level:'연습',cols:['맨 앞','가운데','맨 뒤'],
+  setup:['은우, 태민, 현수가 매점 앞에 한 줄로 서 있다.','세 학생은 간식(붕어빵, 호떡, 군고구마)과 음료(우유, 식혜, 코코아)를 하나씩 샀고, 서로 겹치지 않는다.'],
+  rows:[{a:'이름',label:'이름',v:['은우','태민','현수']},{a:'간식',label:'간식',v:['붕어빵','호떡','군고구마']},{a:'음료',label:'음료',v:['우유','식혜','코코아']}],
+  conds:[
+   {t:'은우는 맨 뒤에 서 있다.',c:{k:'at',a:'이름',v:'은우',i:2}},
+   {t:'군고구마를 산 학생은 가운데에 서 있다.',c:{k:'at',a:'간식',v:'군고구마',i:1}},
+   {t:'코코아를 산 학생의 바로 뒤에는 은우가 서 있다.',c:{k:'plus',a:'음료',v:'코코아',b:'이름',w:'은우',d:1}},
+   {t:'은우는 식혜를 사지 않았다.',c:{k:'not',a:'이름',v:'은우',b:'음료',w:'식혜'}},
+   {t:'호떡을 산 학생은 식혜도 샀다.',c:{k:'same',a:'간식',v:'호떡',b:'음료',w:'식혜'}},
+   {t:'현수는 호떡을 사지 않았다.',c:{k:'not',a:'이름',v:'현수',b:'간식',w:'호떡'}},
+  ],
+  sol:{'이름':['태민','현수','은우'],'간식':['호떡','군고구마','붕어빵'],'음료':['식혜','코코아','우유']},
+  steps:['조건 1 → 은우는 맨 뒤. 조건 3 → 코코아는 은우의 바로 앞인 가운데.','조건 2 → 가운데는 군고구마.','조건 4 → 맨 뒤 은우는 식혜가 아니고 코코아도 아니므로 우유. 남은 식혜는 맨 앞.','조건 5 → 식혜를 산 맨 앞 학생은 호떡. 남은 붕어빵은 맨 뒤.','조건 6 → 현수는 호떡을 산 맨 앞이 아니므로 가운데. 태민은 맨 앞.']},
+ {id:'house',name:'네 집 추리',level:'기본',cols:['첫 번째 집','두 번째 집','세 번째 집','네 번째 집'],
+  setup:['서로 다른 4가지 색의 집이 일렬로 있다.','각 집마다 서로 다른 국적을 가진 사람이 살고 있다.','네 사람은 농구, 수영, 야구, 축구 중 하나의 운동을 즐기고, 강아지, 고양이, 햄스터, 새 중 하나의 반려동물을 키운다.','어떤 두 사람도 즐기는 운동, 키우는 반려동물이 겹치지 않는다.'],
+  rows:[{a:'색',label:'집의 색',v:['파란색','노란색','빨간색','흰색']},{a:'국적',label:'국적',v:['미국','대한민국','일본','영국']},{a:'운동',label:'즐기는 운동',v:['농구','수영','야구','축구']},{a:'동물',label:'반려동물',v:['강아지','고양이','햄스터','새']}],
+  conds:[
+   {t:'미국 사람은 파란색 집에 살고 있다.',c:{k:'same',a:'국적',v:'미국',b:'색',w:'파란색'}},
+   {t:'고양이를 키우는 사람의 옆집에 사는 사람은 농구를 즐긴다.',c:{k:'next',a:'동물',v:'고양이',b:'운동',w:'농구'}},
+   {t:'야구를 즐기는 사람의 옆집에는 미국 사람이 살고 있다.',c:{k:'next',a:'운동',v:'야구',b:'국적',w:'미국'}},
+   {t:'대한민국 사람은 강아지를 키운다.',c:{k:'same',a:'국적',v:'대한민국',b:'동물',w:'강아지'}},
+   {t:'새를 키우는 사람의 옆집은 노란색 집이다.',c:{k:'next',a:'동물',v:'새',b:'색',w:'노란색'}},
+   {t:'일본 사람은 농구를 즐기는 사람의 옆집에 살고 있다.',c:{k:'next',a:'국적',v:'일본',b:'운동',w:'농구'}},
+   {t:'첫 번째 집에 살고 있는 사람은 고양이를 키운다.',c:{k:'at',a:'동물',v:'고양이',i:0}},
+   {t:'흰색 집과 빨간색 집은 붙어 있다.',c:{k:'next',a:'색',v:'흰색',b:'색',w:'빨간색'}},
+   {t:'영국 사람은 세 번째 집에 살고 있다.',c:{k:'at',a:'국적',v:'영국',i:2}},
+   {t:'수영을 즐기는 사람의 옆집은 파란색 집이다.',c:{k:'next',a:'운동',v:'수영',b:'색',w:'파란색'}},
+   {t:'강아지를 키우는 사람의 옆집에는 야구를 즐기는 사람이 있다.',c:{k:'next',a:'동물',v:'강아지',b:'운동',w:'야구'}},
+   {t:'축구를 즐기는 사람의 옆집은 빨간색 집이다.',c:{k:'next',a:'운동',v:'축구',b:'색',w:'빨간색'}},
+  ],
+  sol:{'색':['노란색','파란색','빨간색','흰색'],'국적':['일본','미국','영국','대한민국'],'운동':['수영','농구','야구','축구'],'동물':['고양이','새','햄스터','강아지']},
+  steps:['조건 7 → 첫 번째 집은 고양이. 조건 9 → 세 번째 집은 영국.','조건 2 → 고양이(1번)의 옆집은 2번뿐이므로 2번은 농구. 조건 6 → 일본은 농구(2번) 옆인 1번 또는 3번인데 3번은 영국이므로 1번이 일본.','미국은 2번 또는 4번이다. 미국이 4번이면 조건 1에서 4번이 파란색, 조건 10에서 수영은 3번, 조건 4·11·3에서 야구도 3번이 되어 모순이다. 따라서 미국은 2번(파란색), 대한민국은 4번(강아지).','조건 11 → 강아지(4번) 옆인 3번이 야구. 조건 10 → 수영은 파란색(2번) 옆인 1번. 남은 축구는 4번.','조건 12 → 축구(4번) 옆인 3번이 빨간색. 조건 8 → 흰색은 빨간색 옆인데 2번은 파란색이므로 4번이 흰색. 남은 노란색은 1번.','조건 5 → 새는 노란색(1번)의 옆인 2번. 남은 햄스터는 3번.']},
+ {id:'booth',name:'축제 부스 추리',level:'기본',cols:['1번 부스','2번 부스','3번 부스','4번 부스'],
+  setup:['학교 축제에서 동아리 부스 네 개가 왼쪽부터 1, 2, 3, 4번으로 나란히 있다.','네 부스는 코딩, 미술, 과학, 방송 동아리가 하나씩 맡았다.','부스마다 간판 색(빨간색, 파란색, 초록색, 노란색)과 나눠 주는 선물(스티커, 배지, 엽서, 열쇠고리)이 모두 다르다.'],
+  rows:[{a:'동아리',label:'동아리',v:['코딩','미술','과학','방송']},{a:'색',label:'간판 색',v:['빨간색','파란색','초록색','노란색']},{a:'선물',label:'선물',v:['스티커','배지','엽서','열쇠고리']}],
+  conds:[
+   {t:'과학 동아리 부스는 맨 오른쪽에 있다.',c:{k:'at',a:'동아리',v:'과학',i:3}},
+   {t:'초록색 간판을 단 부스는 과학 동아리 부스이다.',c:{k:'same',a:'색',v:'초록색',b:'동아리',w:'과학'}},
+   {t:'방송 동아리 부스의 간판은 빨간색이다.',c:{k:'same',a:'동아리',v:'방송',b:'색',w:'빨간색'}},
+   {t:'열쇠고리를 주는 부스의 간판은 빨간색이다.',c:{k:'same',a:'선물',v:'열쇠고리',b:'색',w:'빨간색'}},
+   {t:'미술 동아리 부스의 옆에는 파란색 간판을 단 부스가 있다.',c:{k:'next',a:'동아리',v:'미술',b:'색',w:'파란색'}},
+   {t:'스티커를 주는 부스의 간판은 파란색이다.',c:{k:'same',a:'선물',v:'스티커',b:'색',w:'파란색'}},
+   {t:'엽서를 주는 부스는 맨 왼쪽에 있다.',c:{k:'at',a:'선물',v:'엽서',i:0}},
+  ],
+  sol:{'동아리':['미술','코딩','방송','과학'],'색':['노란색','파란색','빨간색','초록색'],'선물':['엽서','스티커','열쇠고리','배지']},
+  steps:['조건 1·2 → 4번 부스는 과학 동아리, 초록색 간판.','조건 3·4 → 방송 동아리 부스는 빨간색 간판이고 열쇠고리를 준다.','조건 7 → 1번은 엽서. 그러므로 1번은 열쇠고리(빨간색)도, 스티커(파란색, 조건 6)도 아니어서 노란색이다. 파란색과 빨간색은 2번과 3번에 있다.','1번은 방송(빨간색)과 과학이 아니므로 미술 또는 코딩이다. 미술이 2번이면 옆이 노란색과 빨간색, 3번이면 옆이 빨간색과 초록색이 되어 조건 5에 어긋난다. 따라서 미술은 1번이고, 조건 5에서 2번이 파란색이다.','3번은 빨간색이므로 방송 동아리, 남은 코딩은 2번이다.','조건 6 → 2번은 스티커. 조건 4 → 3번은 열쇠고리. 남은 배지는 4번.']},
+ {id:'seat',name:'네 자리 추리',level:'도전',cols:['1번 자리','2번 자리','3번 자리','4번 자리'],
+  setup:['교실 앞에서 볼 때 왼쪽부터 1, 2, 3, 4번 자리가 한 줄로 있다.','건우, 도윤, 시우, 하준이 한 자리씩 앉는다.','네 학생의 동아리(코딩, 농구, 밴드, 독서), 좋아하는 간식(떡볶이, 김밥, 라면, 만두), 좋아하는 과목(수학, 국어, 영어, 과학)은 모두 다르다.'],
+  rows:[{a:'이름',label:'이름',v:['건우','도윤','시우','하준']},{a:'동아리',label:'동아리',v:['코딩','농구','밴드','독서']},{a:'간식',label:'좋아하는 간식',v:['떡볶이','김밥','라면','만두']},{a:'과목',label:'좋아하는 과목',v:['수학','국어','영어','과학']}],
+  conds:[
+   {t:'건우는 2번 자리에 앉는다.',c:{k:'at',a:'이름',v:'건우',i:1}},
+   {t:'국어를 좋아하는 학생은 1번 자리에 앉는다.',c:{k:'at',a:'과목',v:'국어',i:0}},
+   {t:'떡볶이를 좋아하는 학생은 4번 자리에 앉는다.',c:{k:'at',a:'간식',v:'떡볶이',i:3}},
+   {t:'코딩 동아리 학생은 수학을 좋아한다.',c:{k:'same',a:'동아리',v:'코딩',b:'과목',w:'수학'}},
+   {t:'과학을 좋아하는 학생은 밴드 동아리이다.',c:{k:'same',a:'과목',v:'과학',b:'동아리',w:'밴드'}},
+   {t:'밴드 동아리 학생의 옆자리에는 수학을 좋아하는 학생이 있다.',c:{k:'next',a:'동아리',v:'밴드',b:'과목',w:'수학'}},
+   {t:'하준은 과학을 좋아한다.',c:{k:'same',a:'이름',v:'하준',b:'과목',w:'과학'}},
+   {t:'도윤은 농구 동아리이다.',c:{k:'same',a:'이름',v:'도윤',b:'동아리',w:'농구'}},
+   {t:'라면을 좋아하는 학생의 옆자리에는 국어를 좋아하는 학생이 있다.',c:{k:'next',a:'간식',v:'라면',b:'과목',w:'국어'}},
+   {t:'독서 동아리 학생은 김밥을 좋아한다.',c:{k:'same',a:'동아리',v:'독서',b:'간식',w:'김밥'}},
+  ],
+  sol:{'이름':['시우','건우','하준','도윤'],'동아리':['독서','코딩','밴드','농구'],'간식':['김밥','라면','만두','떡볶이'],'과목':['국어','수학','과학','영어']},
+  steps:['조건 7·5 → 하준은 과학을 좋아하고 밴드 동아리이다. 조건 2 → 1번은 국어이므로 하준은 1번이 아니다. 조건 1 → 건우는 2번이다.','조건 9 → 라면은 국어(1번)의 옆인 2번이다.','하준이 4번이면 조건 6·4에서 3번이 코딩·수학, 도윤(농구)은 1번이 되고 건우는 독서가 된다. 그러면 조건 10에서 건우는 김밥이어야 하는데 2번은 라면이므로 모순이다. 따라서 하준은 3번(밴드, 과학).','조건 6 → 수학은 2번 또는 4번. 4번이면 4번이 코딩, 도윤(농구)은 1번, 건우는 독서가 되어 같은 모순이 생긴다. 따라서 2번 건우가 수학, 조건 4에서 코딩.','남은 과목 영어는 4번. 조건 3 → 4번은 떡볶이이므로 조건 10에서 독서는 4번이 아니다. 독서는 1번, 농구는 4번이고 조건 8에서 도윤은 4번, 시우는 1번이다.','조건 10 → 1번은 김밥. 남은 만두는 3번.']},
+ {id:'floor',name:'다섯 층 추리',level:'도전',cols:['1층','2층','3층','4층','5층'],
+  setup:['5층짜리 건물의 층마다 한 사람씩 산다. 1층이 맨 아래, 5층이 맨 위예요.','가람, 나래, 다솜, 라온, 마루는 반려동물(강아지, 고양이, 거북, 앵무새, 금붕어)과 직업(의사, 교사, 요리사, 작가, 경찰관)이 모두 다르다.'],
+  rows:[{a:'이름',label:'이름',v:['가람','나래','다솜','라온','마루']},{a:'동물',label:'반려동물',v:['강아지','고양이','거북','앵무새','금붕어']},{a:'직업',label:'직업',v:['의사','교사','요리사','작가','경찰관']}],
+  conds:[
+   {t:'가람은 고양이를 키운다.',c:{k:'same',a:'이름',v:'가람',b:'동물',w:'고양이'}},
+   {t:'경찰관의 바로 위층에는 거북을 키우는 사람이 산다.',c:{k:'plus',a:'직업',v:'경찰관',b:'동물',w:'거북',d:1}},
+   {t:'요리사의 바로 위층에는 가람이 산다.',c:{k:'plus',a:'직업',v:'요리사',b:'이름',w:'가람',d:1}},
+   {t:'의사의 바로 위층에는 다솜이 산다.',c:{k:'plus',a:'직업',v:'의사',b:'이름',w:'다솜',d:1}},
+   {t:'강아지를 키우는 사람의 바로 위층이나 바로 아래층에는 앵무새를 키우는 사람이 산다.',c:{k:'next',a:'동물',v:'강아지',b:'동물',w:'앵무새'}},
+   {t:'나래는 요리사가 아니다.',c:{k:'not',a:'이름',v:'나래',b:'직업',w:'요리사'}},
+   {t:'작가는 강아지를 키운다.',c:{k:'same',a:'직업',v:'작가',b:'동물',w:'강아지'}},
+   {t:'금붕어를 키우는 사람의 바로 위층에는 작가가 산다.',c:{k:'plus',a:'동물',v:'금붕어',b:'직업',w:'작가',d:1}},
+   {t:'경찰관의 바로 위층에는 나래가 산다.',c:{k:'plus',a:'직업',v:'경찰관',b:'이름',w:'나래',d:1}},
+   {t:'마루는 앵무새를 키운다.',c:{k:'same',a:'이름',v:'마루',b:'동물',w:'앵무새'}},
+  ],
+  sol:{'이름':['라온','다솜','마루','가람','나래'],'동물':['금붕어','강아지','앵무새','고양이','거북'],'직업':['의사','작가','요리사','경찰관','교사']},
+  steps:['층수를 정하기 전에 같은 사람끼리 묶는다. 조건 2·9 → 나래는 거북을 키우고 바로 아래층이 경찰관. 조건 7·8 → 작가는 강아지를 키우고 바로 아래층이 금붕어. 조건 1·3 → 가람(고양이)의 바로 아래층이 요리사. 조건 10 → 마루는 앵무새.','강아지를 키우는 작가는 나래(거북), 가람(고양이), 마루(앵무새)가 아니므로 다솜 또는 라온이다.','작가가 라온이라고 가정하자. 그러면 다솜은 금붕어이고, 조건 8·4에서 아래부터 의사, 다솜, 라온이 연달아 산다. 조건 5에서 마루는 라온의 바로 위층이다. 의사는 나래나 가람인데, 나래라면 그 아래층(경찰관)은 1층의 가람이 되어 조건 3에 어긋나고, 가람이라면 그 아래층(요리사)은 1층의 나래가 되어 조건 6에 어긋난다. 모순이므로 작가는 다솜이다.','남은 금붕어는 라온이다. 조건 8·4에서 라온은 다솜의 바로 아래층이고 라온이 의사이다. 조건 5에서 마루는 다솜의 바로 위층이다. 아래부터 라온, 다솜, 마루가 연달아 산다.','남은 직업은 교사, 요리사, 경찰관이다. 나래는 요리사가 아니고(조건 6) 경찰관도 아니므로(조건 9) 교사이다. 가람은 요리사가 아니므로(조건 3) 경찰관, 마루가 요리사이다.','조건 3 → 가람은 마루의 바로 위층. 조건 9 → 나래는 가람의 바로 위층. 1층부터 라온, 다솜, 마루, 가람, 나래이다.']}
+];
+const S={};
+const LOGIC_G={title:'추리하기',rule:'조건을 하나씩 따져 표를 채우자. 다 쓴 조건은 눌러서 지워 두자.'};
+function render(){if(curTab==='logic')renderLogic(LOGIC_G)}
+/* ── 추리하기 ── */
+function lfresh(){return {cells:{},sel:null,check:false,checks:0,used:{},done:false,showAns:false,seen:false,added:{},armed:false,t0:null,t1:null}}
+const LG_LIMIT={'연습':5*MIN,'기본':10*MIN,'도전':20*MIN};
+LOGIC.forEach(P=>rkDefine('logic-'+P.id,{game:'logic',name:P.name,rule:`빨리 완성할수록 위예요. 조건 검사 1회마다 30초를 더해요. 제한 ${clockTxt(LG_LIMIT[P.level])}.`,limit:LG_LIMIT[P.level],key:r=>[r.ms+r.checks*30000],show:r=>mmss(r.ms+r.checks*30000)+(r.checks?` (검사 ${r.checks}회 포함)`:'')}));
+S.logic={p:0,ps:LOGIC.map(()=>lfresh())};
+const LEVEL_PTS={'연습':1,'기본':2,'도전':3};
+const COLOR_FILL={'파란색':'f-sky','노란색':'f-lemon','빨간색':'f-rose','흰색':'f-white'};
+
+function lcell(st,a,i){const v=st.cells[a+'|'+i];return v==null?null:v}
+function lpos(P,st,a,v){for(let i=0;i<P.cols.length;i++)if(st.cells[a+'|'+i]===v)return i;return null}
+/* 현재 표에서 조건의 참·거짓 판정. 아직 정할 수 없으면 null */
+function lcond(P,st,c){
+  const n=P.cols.length;
+  if(c.k==='at'){const cv=lcell(st,c.a,c.i);if(cv!=null)return cv===c.v;return lpos(P,st,c.a,c.v)!=null?false:null}
+  if(c.k==='same'){
+    const i=lpos(P,st,c.a,c.v),j=lpos(P,st,c.b,c.w);
+    if(i!=null&&j!=null)return i===j;
+    if(i!=null&&lcell(st,c.b,i)!=null)return false;
+    if(j!=null&&lcell(st,c.a,j)!=null)return false;
+    return null;
+  }
+  if(c.k==='next'){
+    const i=lpos(P,st,c.a,c.v);if(i==null)return null;
+    const nb=[i-1,i+1].filter(j=>j>=0&&j<n);
+    if(nb.some(j=>lcell(st,c.b,j)===c.w))return true;
+    if(nb.every(j=>lcell(st,c.b,j)!=null))return false;
+    const q=lpos(P,st,c.b,c.w);if(q!=null&&Math.abs(q-i)!==1)return false;
+    return null;
+  }
+  if(c.k==='not'){
+    const i=lpos(P,st,c.a,c.v),j=lpos(P,st,c.b,c.w);
+    if(i!=null&&j!=null)return i!==j;
+    if(i!=null&&lcell(st,c.b,i)!=null)return true;
+    if(j!=null&&lcell(st,c.a,j)!=null)return true;
+    return null;
+  }
+  if(c.k==='plus'){
+    const i=lpos(P,st,c.a,c.v),j=lpos(P,st,c.b,c.w),d=c.d;
+    if(i!=null&&j!=null)return j===i+d;
+    if(i!=null){const t=i+d;if(t<0||t>=n)return false;const cv=lcell(st,c.b,t);return cv==null?null:cv===c.w}
+    if(j!=null){const t=j-d;if(t<0||t>=n)return false;const cv=lcell(st,c.a,t);return cv==null?null:cv===c.v}
+    return null;
+  }
+  return null;
+}
+function lgrade(P,st){
+  let ok=0,no=0,empty=0;
+  P.rows.forEach(r=>P.cols.forEach((_,i)=>{const v=lcell(st,r.a,i);if(v==null)empty++;else if(v===P.sol[r.a][i])ok++;else no++}));
+  return {ok,no,empty,total:P.rows.length*P.cols.length};
+}
+
+function lgridHtml(P,st,mode){
+  return `<div class="rwrap"><table class="lgrid"><thead><tr><th></th>${P.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
+  ${P.rows.map((r,ri)=>`<tr><th>${r.label}</th>${P.cols.map((_,i)=>{
+    const v=lcell(st,r.a,i);
+    if(mode==='answer'){
+      const s=P.sol[r.a][i],wrong=v!=null&&v!==s;
+      return `<td><div class="lcell sketch ${r.a==='색'?COLOR_FILL[s]:'f-paper'} ${wrong?'lwrong':v==null?'lempty':''}"><span>${s}</span>${wrong?`<s>${v}</s>`:v==null?'<s>빈칸</s>':''}</div></td>`;
+    }
+    const isSel=st.sel&&st.sel.a===r.a&&st.sel.i===i;
+    const fill=v&&r.a==='색'?COLOR_FILL[v]:'f-paper';
+    return `<td><button type="button" class="lcell sketch ${fill}${isSel?' lsel':''}${v?'':' lnone'}" data-lcell="${ri}|${i}" aria-label="${P.cols[i]} ${r.label}${v?' '+v:' 빈칸'}">${v||'·'}</button></td>`;
+  }).join('')}</tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function renderLogic(g){
+  const L=S.logic,P=LOGIC[L.p],st=L.ps[L.p];
+  const psel=`<div class="rounds">${LOGIC.map((x,k)=>`<button class="sketch f-lav" type="button" data-lp="${k}" aria-pressed="${k===L.p}">${x.level} · ${x.name}</button>`).join('')}</div>`;
+  if(st.done){stage.innerHTML=`<div class="ghead"><h2>${P.name} 결과</h2></div>`+psel+logicResults(P,st);return}
+  const gr=lgrade(P,st),filled=gr.total-gr.empty;
+  const conds=P.conds.map((c,k)=>{
+    const r=st.check?lcond(P,st,c.c):undefined;
+    const badge=st.check?(r===true?'<span class="bd t">참</span>':r===false?'<span class="bd f">거짓</span>':'<span class="bd u">판단 보류</span>'):'';
+    return `<li><button type="button" class="lc${st.used[k]?' used':''}${r===false?' bad':''}" data-lc="${k}" aria-pressed="${!!st.used[k]}"><span class="ln">${k+1}</span><span class="lt">${esc(c.t)}</span>${badge}</button></li>`;
+  }).join('');
+  let pal='';
+  if(st.sel){
+    const row=P.rows.find(r=>r.a===st.sel.a);
+    pal=`<div class="palette"><span class="pl-h">${P.cols[st.sel.i]} · ${row.label}</span>
+      ${row.v.map(v=>{const at=lpos(P,st,row.a,v);return `<button type="button" class="sketch ${row.a==='색'?COLOR_FILL[v]:'f-paper'}${at!=null&&at!==st.sel.i?' taken':''}" data-lval="${esc(v)}">${v}${at!=null&&at!==st.sel.i?`<small>${at+1}번에 있음</small>`:''}</button>`}).join('')}
+      <button type="button" class="sketch f-paper ghost" data-lval="">지우기</button></div>`;
+  } else pal=`<p class="pl-tip">칸을 누르면 고를 수 있는 값이 여기에 나온다. 같은 줄에서 이미 쓴 값을 고르면 원래 칸은 비워진다.</p>`;
+  stage.innerHTML=`<div class="ghead"><h2>${g.title}</h2>${gtimeHTML()}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button><span class="count">채운 칸 ${filled} / ${gr.total}</span></div>
+   <p class="rule">${g.rule}</p>${psel}
+   <div class="lwrap">
+     <div class="lleft">
+       <div class="setup sketch f-lav"><b>상황</b><ul>${P.setup.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>
+       <ol class="conds">${conds}</ol>
+     </div>
+     <div class="lright">
+       ${lgridHtml(P,st,'play')}
+       ${pal}
+     </div>
+   </div>
+   <div class="ctrl">
+     <button class="sketch ${st.check?'f-mint':'f-paper'}" data-act="lcheck" type="button" aria-pressed="${st.check}">${st.check?'조건 검사 끄기':'조건 검사'}</button>
+     <span class="chk">검사 ${st.checks}회</span>
+     <button class="sketch f-paper ghost" data-act="lclear" type="button">${st.armed?'한 번 더 누르면 표 비우기':'표 비우기'}</button>
+     <button class="sketch f-mint reveal" data-act="lresult" type="button">결과 보기</button>
+   </div>`;
+}
+
+function logicResults(P,st){
+  const gr=lgrade(P,st);
+  const perfect=gr.ok===gr.total,pts=perfect?LEVEL_PTS[P.level]:0;
+  return `<div class="res-top">
+     <div class="lbig">${gr.ok}<small> / ${gr.total} 칸 정답</small></div>
+     <div class="chips">
+       ${perfect?'<span class="sketch f-mint">완성</span>':`<span class="sketch f-mint">정답 ${gr.ok}</span><span class="sketch f-rose">오답 ${gr.no}</span>${gr.empty?`<span class="sketch f-paper">빈칸 ${gr.empty}</span>`:''}`}
+       <span class="sketch f-paper">조건 검사 ${st.checks}회</span>
+     </div>
+   </div>
+   ${st.showAns?`${lgridHtml(P,st,'answer')}
+     <div class="steps sketch f-lemon"><b>풀이 순서</b><ol>${P.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+     <p class="note">‘옆’은 ‘양쪽 옆 중 적어도 한 곳’으로 읽는다.${P.id==='house'?' ‘양쪽 옆 모두’로 읽으면 조건을 모두 만족하는 배치가 없다.':''}</p></div>`
+     :`<div class="locked sketch f-lemon">해답은 ‘해답 보기’를 눌러야 공개된다. 다음 사람이 풀 차례라면 ‘다시 풀기’를 누르자.</div>`}
+   <div class="ctrl">
+     ${st.seen?'':`<button class="sketch f-paper ghost" data-act="lback" type="button">표로 돌아가기</button>`}
+     <button class="sketch f-paper" data-act="lrestart" type="button">${st.armed?'한 번 더 누르면 새로 시작':'다시 풀기'}</button>
+     <button class="sketch f-lemon reveal" data-act="lanswers" type="button">${st.showAns?'해답 가리기':'해답 보기'}</button>
+   </div>`;
+}
+
+function logicClick(t){
+  const L=S.logic,P=LOGIC[L.p],st=L.ps[L.p];
+  if(t.dataset.lp!=null){L.p=+t.dataset.lp;render();return}
+  if(t.dataset.lcell!=null){const [ri,i]=t.dataset.lcell.split('|').map(Number);const a=P.rows[ri].a;
+    st.sel=(st.sel&&st.sel.a===a&&st.sel.i===i)?null:{a,i};}
+  else if(t.dataset.lval!=null){
+    if(!st.sel)return;const v=t.dataset.lval,a=st.sel.a;
+    if(v===''){delete st.cells[a+'|'+st.sel.i]}
+    else{const at=lpos(P,st,a,v);if(at!=null)delete st.cells[a+'|'+at];st.cells[a+'|'+st.sel.i]=v;if(!st.t0)st.t0=now()}
+    /* 다음 빈칸으로 자동 이동하지 않는다 — 학생이 고른 칸을 직접 확인하게 둔다 */
+    st.sel=null;
+  }
+  else if(t.dataset.lc!=null){const k=+t.dataset.lc;st.used[k]=!st.used[k]}
+  else{
+    const a=t.dataset.act;
+    if(a!=='lclear'&&a!=='lrestart')st.armed=false;
+    if(a==='lcheck'){st.check=!st.check;if(st.check)st.checks++}
+    else if(a==='lresult'){st.done=true;st.sel=null;const gr=lgrade(P,st);
+      if(gr.ok===gr.total&&!st.seen&&!st.t1&&st.t0){st.t1=now();render();
+        if(within(st.t0,st.t1,LG_LIMIT[P.level]))rkEntry('logic-'+P.id,{ms:st.t1-st.t0,checks:st.checks},`${P.name} 완성!`);return}}
+    else if(a==='lback')st.done=false;
+    else if(a==='lanswers'){st.showAns=!st.showAns;if(st.showAns)st.seen=true}
+    else if(a==='lclear'||a==='lrestart'){
+      if(!st.armed){st.armed=true;clearTimeout(st.armT);st.armT=setTimeout(()=>{st.armed=false;render()},3000)}
+      else{clearTimeout(st.armT);L.ps[L.p]=lfresh()}
+    }
+  }
+  render();
+}
+
+const LOGICGAME={mount(){render();gtimeTick()},timer(){const L=S.logic,P=LOGIC[L.p],st=L.ps[L.p];return st.seen&&!st.t1?null:{t0:st.t0,t1:st.t1,limit:LG_LIMIT[P.level]}},click(t){logicClick(t);gtimeTick()}};
+
+/* ───────── 두뇌 퀴즈 ───────── */
+/* 문제적 남자·멘사형 유형을 본떠 새로 만든 문항. 정답은 모두 계산·전수 탐색으로 확인함 */
+const BQ=[
+ {cat:'규칙 찾기',q:'빈칸에 들어갈 수는?',show:{seq:['2','3','5','9','17','?']},opts:['25','31','33','34'],a:2,
+  hint:'이웃한 두 수의 차이를 적어 보자.',w:'차이가 1, 2, 4, 8로 두 배씩 커진다. 다음 차이는 16이므로 17 + 16 = 33이다.'},
+ {cat:'규칙 찾기',q:'빈칸에 들어갈 글자는?',show:{seq:['ㄱ','ㄴ','ㄹ','ㅅ','?']},opts:['ㅇ','ㅈ','ㅊ','ㅋ'],a:3,
+  hint:'자음의 순서(ㄱ, ㄴ, ㄷ, ㄹ, …)를 번호로 바꿔 보자.',w:'ㄱ(1번), ㄴ(2번), ㄹ(4번), ㅅ(7번)이다. 간격이 1, 2, 3으로 늘어나므로 다음은 11번째 자음인 ㅋ이다.'},
+ {cat:'규칙 찾기',q:'다음 줄에 들어갈 수는?',show:{lines:['1','11','21','1211','111221','?']},opts:['312211','1112221','221112','312221'],a:0,
+  hint:'계산하지 말고, 바로 윗줄을 소리 내어 읽어 보자. “1이 한 개”…',w:'윗줄을 읽은 것이 다음 줄이다. 1 → “1이 한 개” 11 → “1이 두 개” 21 → … 111221은 “1이 세 개, 2가 두 개, 1이 한 개”이므로 312211이다.'},
+ {cat:'숨은 규칙',q:'규칙에 따라 빈칸에 들어갈 수는?',show:{pairs:[['8','2'],['6','1'],['0','1'],['9','1'],['1','0'],['88','4'],['1680','?']]},opts:['3','4','5','6'],a:1,
+  hint:'계산 규칙이 아니다. 숫자의 생김새를 보자.',w:'숫자 안에 있는 동그라미의 개수이다. 1은 0개, 6은 1개, 8은 2개, 0은 1개이므로 1680은 4이다.'},
+ {cat:'숨은 규칙',q:'규칙에 따라 빈칸에 들어갈 수는?',show:{pairs:[['3 + 10','1'],['9 + 5','2'],['6 + 11','5'],['7 + 8','?']]},opts:['1','3','5','15'],a:1,
+  hint:'교실 벽에 걸린 둥근 물건을 떠올려 보자.',w:'시계의 시각 계산이다. 3시에서 10시간 뒤는 1시, 9시에서 5시간 뒤는 2시이다. 7시에서 8시간 뒤는 3시이다.'},
+ {cat:'숨은 규칙',q:'★의 규칙을 찾자. 5 ★ 6은?',show:{pairs:[['2 ★ 3','10'],['3 ★ 4','21'],['4 ★ 5','36'],['5 ★ 6','?']]},opts:['30','45','55','66'],a:2,
+  hint:'두 수를 곱한 값과 답을 비교해 보자. 얼마가 더 커졌는가?',w:'a ★ b = a × (a + b)이다. 2 × 5 = 10, 3 × 7 = 21, 4 × 9 = 36이므로 5 × 11 = 55이다.'},
+ {cat:'발상 전환',q:'빈칸에 들어갈 수는?',show:{pairs:[['1','5'],['2','25'],['3','125'],['4','625'],['5','?']]},opts:['3125','625','5','1'],a:3,
+  hint:'규칙을 찾기 전에 첫 줄을 다시 읽어 보자.',w:'첫 줄에서 1 = 5라고 했다. 등호는 양쪽이 같다는 뜻이므로 5 = 1이다. 규칙만 따라가면 3125를 고르게 된다.'},
+ {cat:'성냥개비',q:'성냥개비 하나만 옮겨서 올바른 식을 만들자. 어떤 식이 되는가?',show:{match:'5+7=2'},opts:['5 − 3 = 2','9 − 7 = 2','5 + 7 = 12','6 − 4 = 2'],a:1,
+  hint:'숫자만 바꿀 수 있는 것은 아니다. +도 성냥개비 두 개로 되어 있다.',w:'+의 세로 막대를 빼서 5의 오른쪽 위에 붙이면 9 − 7 = 2가 된다. 5 − 3 = 2도 맞는 식이지만 성냥개비를 두 개 이상 옮겨야 한다.',solve:'9-7=2'},
+ {cat:'성냥개비',q:'성냥개비 하나만 옮겨서 올바른 식을 만들자. 어떤 식이 되는가?',show:{match:'1+6=5'},opts:['1 + 4 = 5','7 − 6 = 1','1 + 5 = 6','1 + 6 = 7'],a:2,
+  hint:'6과 5는 성냥개비 하나 차이이다.',w:'6의 왼쪽 아래 막대를 빼면 5가 되고, 그 막대를 오른쪽 5의 왼쪽 아래에 붙이면 6이 된다. 1 + 5 = 6이다. 하나만 옮겨서 맞는 식이 되는 방법은 이것 하나뿐이다.',solve:'1+5=6'},
+ {cat:'공간',q:'주사위는 마주 보는 두 면의 눈의 합이 7이다. 주사위 세 개를 탑처럼 쌓았더니 맨 위 면의 눈이 5였다. 바닥에 닿은 면과 주사위끼리 맞닿은 면, 모두 다섯 면의 눈의 합은?',show:{dice:true},opts:['14','16','18','21'],a:1,
+  hint:'가운데 주사위의 윗면과 아랫면은 서로 마주 보는 면이다.',w:'맨 위 주사위의 아랫면은 5의 반대쪽인 2이다. 가운데 주사위의 윗면과 아랫면은 마주 보는 면이므로 합이 7, 맨 아래 주사위의 윗면과 바닥 면도 합이 7이다. 2 + 7 + 7 = 16이다.'},
+ {cat:'시계',q:'시계의 시침과 분침은 하루 동안(0시부터 다음 날 0시 직전까지) 몇 번 겹치는가?',show:{text:'0시 00분에 한 번 겹친 상태에서 시작한다.'},opts:['12번','22번','23번','24번'],a:1,
+  hint:'12시간 동안 분침은 시침을 몇 번 따라잡는가? 11시와 12시 사이를 살펴보자.',w:'12시간 동안 분침은 12바퀴, 시침은 1바퀴 돈다. 분침이 시침을 따라잡는 횟수는 12 − 1 = 11번이다. 하루는 그 두 배인 22번이다. 11시대에는 따로 겹치지 않고 12시 정각에 겹친다.'},
+ {cat:'논리',q:'두 갈래 길 앞에 문지기 두 명이 있다. 한 명은 항상 참말만, 다른 한 명은 항상 거짓말만 하는데 누가 누구인지 모른다. 한 명에게 질문 하나만 해서 마을로 가는 길을 알아내려면 무엇을 물어야 하는가?',show:{text:''},
+  opts:['“당신은 참말을 하는 사람입니까?”','“이 길이 마을로 가는 길입니까?”','“저 사람에게 마을로 가는 길을 물으면 어느 길을 가리키겠습니까?”','“1 + 1은 2입니까?”'],a:2,
+  hint:'두 사람의 말을 한 번에 거치게 하면 참말과 거짓말이 어떻게 섞이는가?',w:'누구에게 물어도 대답에는 거짓이 정확히 한 번 들어간다. 그래서 가리킨 길은 항상 틀린 길이고, 반대쪽 길로 가면 된다. 1번은 둘 다 “예”라고 하고, 4번은 누가 거짓말쟁이인지만 알려 준다.'},
+ {cat:'측정',q:'3L 통과 5L 통이 있고 물은 마음껏 쓸 수 있다. 통을 가득 채우기, 비우기, 한 통에서 다른 통으로 붓기를 각각 1번으로 셀 때, 5L 통에 물 4L를 만들려면 최소 몇 번이 필요한가?',show:{text:'눈금은 없다.'},opts:['4번','5번','6번','8번'],a:2,
+  hint:'5L 통을 먼저 채워 3L 통에 부어 보자. 5L 통에 무엇이 남는가?',w:'5L 채우기 → 3L에 붓기(5L 통에 2L) → 3L 비우기 → 2L를 3L 통에 붓기 → 5L 채우기 → 3L 통이 찰 때까지 붓기(1L만 들어감). 5L 통에 4L가 남는다. 모두 6번이다. 모든 경우를 따져 보면 이보다 적게는 불가능하다.'},
+ {cat:'마방진',q:'1부터 9까지를 한 번씩 써서 가로, 세로, 대각선의 합이 모두 같게 만들었다. ?에 들어갈 수는?',show:{grid:['2','7','','','5','','?','','']},opts:['3','4','6','8'],a:1,
+  hint:'1부터 9까지 합은 45이다. 한 줄의 합은 얼마인가?',w:'한 줄의 합은 45 ÷ 3 = 15이다. 윗줄에서 오른쪽 위는 15 − 2 − 7 = 6이다. 오른쪽 위에서 왼쪽 아래로 가는 대각선이 6 + 5 + ? = 15이므로 ?는 4이다.'},
+ {cat:'달력',q:'어느 달에 일요일이 다섯 번 있다. 첫 번째 일요일과 다섯 번째 일요일의 날짜를 더하면 32이다. 이 달의 1일은 무슨 요일인가?',show:{text:''},opts:['금요일','토요일','일요일','월요일'],a:1,
+  hint:'다섯 번째 일요일은 첫 번째 일요일로부터 며칠 뒤인가?',w:'다섯 번째 일요일은 첫 번째 일요일의 28일 뒤이다. 첫 일요일을 x일이라 하면 x + (x + 28) = 32이므로 x = 2이다. 2일이 일요일이므로 1일은 토요일이다.'},
+ {cat:'언어',q:'글자를 다시 배열해 고등학교 과목 이름을 만들자.',show:{tiles:['구','제','학','탐','과','수']},open:'수학과제탐구',
+  hint:'3학년 선택 과목이다. ‘수학’으로 시작한다.',w:''},
+ {cat:'언어',q:'글자를 다시 배열해 우리 학교 이름을 만들자.',show:{tiles:['릉','교','강','일','학','고','제','등']},open:'강릉제일고등학교',
+  hint:'우리가 매일 오는 곳이다.',w:''},
+];
+
+/* 성냥개비 그리기 */
+const SEG7={'0':'abcdef','1':'bc','2':'abged','3':'abgcd','4':'fgbc','5':'afgcd','6':'afgedc','7':'abc','8':'abcdefg','9':'abcdfg'};
+function matchSVG(eq){
+  const W=64,H=112,gap=20;let x=10,out='';
+  const stick=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#D9A441" stroke-width="7" stroke-linecap="round"/><circle cx="${x1}" cy="${y1}" r="6" fill="#C4553F"/>`;
+  for(const ch of eq){
+    if(SEG7[ch]){const s=SEG7[ch],L=x+6,R=x+W-6,T=8,M=H/2,B=H-8;
+      const P={a:[L+6,T,R-6,T],b:[R,T+6,R,M-6],c:[R,M+6,R,B-6],d:[L+6,B,R-6,B],e:[L,M+6,L,B-6],f:[L,T+6,L,M-6],g:[L+6,M,R-6,M]};
+      for(const k of s)out+=stick(...P[k]);x+=W+gap;}
+    else{const cx=x+22,cy=H/2;
+      if(ch==='+'){out+=stick(cx-20,cy,cx+20,cy)+stick(cx,cy-20,cx,cy+20)}
+      if(ch==='-'){out+=stick(cx-20,cy,cx+20,cy)}
+      if(ch==='='){out+=stick(cx-20,cy-12,cx+20,cy-12)+stick(cx-20,cy+12,cx+20,cy+12)}
+      x+=44+gap;}
+  }
+  return `<svg class="mt" viewBox="0 0 ${x} ${H+4}" role="img" aria-label="성냥개비 식 ${eq}">${out}</svg>`;
+}
+function bqShow(p,solved){
+  const s=p.show;
+  if(s.seq)return `<div class="bq-seq">${s.seq.map(v=>`<span class="${v==='?'?'qm':''}">${v}</span>`).join('<i>,</i>')}</div>`;
+  if(s.lines)return `<div class="bq-lines">${s.lines.map(v=>`<span class="${v==='?'?'qm':''}">${v}</span>`).join('')}</div>`;
+  if(s.pairs)return `<div class="bq-pairs">${s.pairs.map(([l,r])=>`<span>${l}</span><span>=</span><span class="${r==='?'?'qm':''}">${r}</span>`).join('')}</div>`;
+  if(s.match)return `<div class="bq-match">${matchSVG(s.match)}${solved&&p.solve?`<div class="mt-sol"><span>정답</span>${matchSVG(p.solve)}</div>`:''}</div>`;
+  if(s.grid)return `<div class="bq-grid">${s.grid.map(v=>`<span class="${v==='?'?'qm':''}">${v}</span>`).join('')}</div>`;
+  if(s.tiles)return `<div class="bq-tiles">${s.tiles.map(v=>`<span class="sketch f-lemon">${v}</span>`).join('')}</div>`;
+  if(s.dice)return `<div class="bq-dice"><span>5</span><span></span><span></span></div>`;
+  if(s.text)return `<p class="bq-text">${s.text}</p>`;
+  return '';
+}
+let bq={i:0,sel:null,state:{},hint:{}};
+function bqSolvedSet(){return new Set(sess.get('bq-solved',[]))}
+function renderBQ(){
+  const p=BQ[bq.i],st=bq.state[bq.i]||'',solved=bqSolvedSet(),showW=st==='ok'||st==='give';
+  const dots=BQ.map((x,k)=>`<button type="button" class="bq-dot${k===bq.i?' cur':''}${solved.has(k)?' done':''}" data-bq="${k}" aria-label="${k+1}번 ${x.cat}${solved.has(k)?' 해결':''}">${k+1}</button>`).join('');
+  let body;
+  if(p.open){
+    body=`<div class="ctrl"><button class="btn sketch f-paper" type="button" data-act="bqhint" ${bq.hint[bq.i]?'disabled':''}>힌트 보기</button>
+      ${showW?'':`<button class="btn big sketch f-mint reveal" type="button" data-act="bqopen">생각했으면 정답 보기</button>`}</div>`;
+  }else{
+    body=`<div class="bq-opts">${p.opts.map((o,k)=>{let c='';if(showW&&k===p.a)c=' right';else if(st==='no'&&bq.sel===k)c=' wrong';else if(bq.sel===k)c=' sel';
+        return `<button type="button" class="bq-opt sketch f-white${c}" data-bqo="${k}" ${showW?'disabled':''}><span class="k">${k+1}</span><span>${o}</span></button>`}).join('')}</div>
+      <div class="ctrl"><button class="btn sketch f-paper" type="button" data-act="bqhint" ${bq.hint[bq.i]?'disabled':''}>힌트 보기</button>
+       ${showW?'':`<button class="btn sketch f-paper ghost" type="button" data-act="bqgive">포기하고 해설 보기</button>
+       <button class="btn big sketch f-mint reveal" type="button" data-act="bqcheck" ${bq.sel==null?'disabled':''}>정답 확인</button>`}</div>`;
+  }
+  const fb=st==='no'?`<div class="bq-fb no">아니다. 다시 생각해 보자.</div>`:st==='ok'?`<div class="bq-fb ok">정답!</div>`:'';
+  stage.innerHTML=`<div class="ghead"><h2>두뇌 퀴즈</h2><p>규칙 찾기, 숨은 규칙, 발상 전환, 공간, 논리까지 여러 방향으로 생각해야 풀리는 문제이다. 자유 풀이는 시간 제한이 없다.</p></div>
+    <div class="opts">${seg('방식','bqm',[['free','자유 풀이'],['rank','랭킹 도전 (10문제)']],BQmode)}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button></div>
+    <div class="bq-top"><div class="bq-dots">${dots}</div><span class="note">이 칠판에서 맞힌 문제 ${solved.size} / ${BQ.length}</span></div>
+    <div class="bq">
+      <div class="bq-card sketch f-white">
+        <div class="bq-cat"><span class="sketch f-lav">${p.cat}</span><b>${bq.i+1}.</b></div>
+        <p class="bq-q">${p.q}</p>
+        ${bqShow(p,showW)}
+        ${bq.hint[bq.i]?`<p class="bq-hint">힌트 · ${p.hint}</p>`:''}
+      </div>
+      <div class="bq-side">
+        ${body}${fb}
+        ${showW?`<div class="steps sketch f-lemon"><b>${p.open?'정답 · '+p.open:'해설'}</b>${p.w?`<p>${p.w}</p>`:''}${p.open&&!solved.has(bq.i)?`<p><button class="btn sketch f-mint" type="button" data-act="bqself">맞혔다면 누르자</button></p>`:''}</div>`:''}
+        <div class="bq-nav">
+          <button class="btn sketch f-paper" type="button" data-act="bqprev" ${bq.i===0?'disabled':''}>이전 문제</button>
+          <button class="btn sketch f-lemon" type="button" data-act="bqnext" ${bq.i===BQ.length-1?'disabled':''}>다음 문제</button>
+        </div>
+        <button class="btn sketch f-paper ghost bq-reset" type="button" data-act="bqreset">맞힌 기록 지우기</button>
+      </div>
+    </div>`;
+}
+function bqGo(i){bq.i=i;bq.sel=null;if(bq.state[i]==='no')bq.state[i]='';renderBQ()}
+const BRAINQ={
+  mount(){if(!bqr)bqrNew();BQmode==='rank'?renderBQR():renderBQ()},
+  timer(){return BQmode==='rank'&&bqr&&bqr.phase!=='ready'?{t0:bqr.t0,t1:bqr.t1,limit:RK.bq.limit}:BQmode==='rank'?{t0:null,t1:null,limit:RK.bq.limit}:null},
+  click(t){
+    if(t.dataset.seg==='bqm'){BQmode=t.dataset.v;if(!bqr)bqr=null;if(BQmode==='rank'&&(!bqr||bqr.phase==='end'))bqrNew();BQmode==='rank'?renderBQR():renderBQ();return}
+    if(BQmode==='rank'){bqrClick(t);return}
+    if(t.dataset.bq!=null){bqGo(+t.dataset.bq);return}
+    if(t.dataset.bqo!=null){bq.sel=+t.dataset.bqo;if(bq.state[bq.i]==='no')bq.state[bq.i]='';renderBQ();return}
+    const a=t.dataset.act,p=BQ[bq.i];
+    if(a==='bqhint'){bq.hint[bq.i]=true}
+    else if(a==='bqcheck'&&bq.sel!=null){
+      if(bq.sel===p.a){bq.state[bq.i]='ok';const s=bqSolvedSet();s.add(bq.i);sess.set('bq-solved',[...s])}else bq.state[bq.i]='no';
+    }
+    else if(a==='bqgive'||a==='bqopen'){bq.state[bq.i]='give'}
+    else if(a==='bqself'){const s=bqSolvedSet();s.add(bq.i);sess.set('bq-solved',[...s])}
+    else if(a==='bqprev'&&bq.i>0){bqGo(bq.i-1);return}
+    else if(a==='bqnext'&&bq.i<BQ.length-1){bqGo(bq.i+1);return}
+    else if(a==='bqreset'){arm(t,'한 번 더 누르면 지운다',()=>{sess.set('bq-solved',[]);bq.state={};bq.hint={};renderBQ()});return}
+    renderBQ();
+  }
+};
+
+/* 두뇌 퀴즈 · 랭킹 도전: 보기가 있는 문제 중 10문제, 문제마다 한 번만 답한다 */
+let BQmode='free',bqr=null;
+const BQ_CHOICE=BQ.map((p,k)=>p.open?-1:k).filter(k=>k>=0);
+function bqrNew(){bqr={phase:'ready',set:shuffle(BQ_CHOICE).slice(0,10),i:0,sel:null,ans:{},hintUsed:{},hints:0,t0:null,t1:null}}
+function renderBQR(){
+  const modeSeg=seg('방식','bqm',[['free','자유 풀이'],['rank','랭킹 도전 (10문제)']],BQmode);
+  const headTop=`<div class="ghead"><h2>두뇌 퀴즈</h2><p>여러 방향으로 생각해야 풀리는 문제이다. 랭킹 도전은 무작위 10문제를 문제마다 한 번씩만 답한다.</p></div>
+    <div class="opts">${modeSeg}${gtimeHTML()}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button></div>`;
+  if(bqr.phase==='ready'){
+    stage.innerHTML=headTop+`<div class="bqr-ready sketch f-lemon"><b>랭킹 도전</b>
+      <ul><li>보기가 있는 문제 중 10문제가 무작위로 나온다.</li><li>문제마다 답은 한 번만 고를 수 있다. 확인을 누르면 바꿀 수 없다.</li>
+      <li>힌트는 써도 되지만 횟수가 기록된다.</li><li>맞힌 수 → 힌트 횟수 → 걸린 시간 순으로 순위를 매겨요. 제한 시간은 10분이에요.</li></ul>
+      <button class="btn big sketch f-mint" type="button" data-act="bqrgo">시작</button></div>`;gtimeTick();return}
+  if(bqr.phase==='end'){
+    const ok=Object.keys(bqr.ans).filter(k=>bqr.ans[k]).length;
+    stage.innerHTML=headTop+`<div class="res-top"><div class="lbig">${ok}<small> / 10 정답</small></div>
+      <div class="chips"><span class="sketch f-paper">힌트 ${bqr.hints}회</span><span class="sketch f-paper">${mmss(bqr.t1-bqr.t0)}</span></div></div>
+      <div class="rwrap"><table class="rtab"><thead><tr><th>#</th><th>유형</th><th>정답</th><th>결과</th></tr></thead><tbody>
+      ${bqr.set.map((q,i)=>`<tr><td>${i+1}</td><td>${BQ[q].cat}</td><td>${BQ[q].opts[BQ[q].a]}</td><td>${bqr.ans[i]?'<span class="ox o">O</span>':'<span class="ox x">X</span>'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="ctrl"><button class="btn big sketch f-mint reveal" type="button" data-act="bqrnew">다시 도전</button></div>`;gtimeTick();return}
+  const q=bqr.set[bqr.i],p=BQ[q],answered=bqr.i in bqr.ans;
+  stage.innerHTML=headTop+`<div class="bq-top"><div class="bq-dots">${bqr.set.map((_,i)=>`<span class="bq-dot${i===bqr.i?' cur':''}${i in bqr.ans?(bqr.ans[i]?' done':' miss'):''}">${i+1}</span>`).join('')}</div><span class="note">힌트 ${bqr.hints}회</span></div>
+    <div class="bq"><div class="bq-card sketch f-white"><div class="bq-cat"><span class="sketch f-lav">${p.cat}</span><b>${bqr.i+1}.</b></div>
+      <p class="bq-q">${p.q}</p>${bqShow(p,answered)}${bqr.hintUsed[bqr.i]?`<p class="bq-hint">힌트 · ${p.hint}</p>`:''}</div>
+    <div class="bq-side">
+      <div class="bq-opts">${p.opts.map((o,k)=>{let c='';if(answered&&k===p.a)c=' right';else if(answered&&bqr.sel===k)c=' wrong';else if(bqr.sel===k)c=' sel';
+        return `<button type="button" class="bq-opt sketch f-white${c}" data-rq="${k}" ${answered?'disabled':''}><span class="k">${k+1}</span><span>${o}</span></button>`}).join('')}</div>
+      <div class="ctrl"><button class="btn sketch f-paper" type="button" data-act="bqrhint" ${bqr.hintUsed[bqr.i]||answered?'disabled':''}>힌트 보기</button>
+        ${answered?`<button class="btn big sketch f-lemon reveal" type="button" data-act="bqrnext">${bqr.i===9?'결과 보기':'다음 문제'}</button>`
+          :`<button class="btn big sketch f-mint reveal" type="button" data-act="bqrcheck" ${bqr.sel==null?'disabled':''}>정답 확인</button>`}</div>
+      ${answered?`<div class="bq-fb ${bqr.ans[bqr.i]?'ok':'no'}">${bqr.ans[bqr.i]?'정답!':'아쉽다. 정답은 '+(p.a+1)+'번이다.'}</div><div class="steps sketch f-lemon"><b>해설</b><p>${p.w}</p></div>`:''}
+    </div></div>`;
+  gtimeTick();
+}
+function bqrClick(t){
+  if(t.dataset.rq!=null){bqr.sel=+t.dataset.rq;renderBQR();return}
+  const a=t.dataset.act;
+  if(a==='bqrgo'){bqr.phase='run';bqr.t0=now()}
+  else if(a==='bqrnew'){bqrNew()}
+  else if(a==='bqrhint'){bqr.hintUsed[bqr.i]=true;bqr.hints++}
+  else if(a==='bqrcheck'&&bqr.sel!=null){bqr.ans[bqr.i]=bqr.sel===BQ[bqr.set[bqr.i]].a}
+  else if(a==='bqrnext'){
+    if(bqr.i<9){bqr.i++;bqr.sel=null}
+    else{bqr.phase='end';bqr.t1=now();renderBQR();
+      const ok=Object.values(bqr.ans).filter(Boolean).length;
+      if(within(bqr.t0,bqr.t1,RK.bq.limit))rkEntry('bq',{ok,hints:bqr.hints,ms:bqr.t1-bqr.t0},`${ok}문제를 맞혔다!`);
+      return}
+  }
+  renderBQR();
+}
+
+/* ───────── 네모 로직 ───────── */
+/* 여섯 그림 모두 답이 하나뿐이고, 가정 없이 줄 단위 추론만으로 풀린다(전수 검증) */
+const NONO=[
+ {id:'heart',name:'하트',g:['.#.#.','#####','#####','.###.','..#..']},
+ {id:'home',name:'집',g:['..#..','.###.','#####','.#.#.','.#.##']},
+ {id:'tree',name:'나무',g:['...#...','..###..','.#####.','..###..','.#####.','#######','...#...']},
+ {id:'mug',name:'머그컵',g:['.#.#.#.','.......','#####..','#####.#','#####.#','#####..','.###...']},
+ {id:'umbrella',name:'우산',g:['....##....','..######..','.########.','##########','#.#.##.#.#','....##....','....##....','....##....','.#..##....','..###.....']},
+ {id:'puppy',name:'강아지',g:['.##....##.','.#.####.#.','.#......#.','..#.##.#..','..#....#..','..#.##.#..','...#..#...','....##....','...#..#...','..##..##..']},
+];
+const NONO_LIMIT={5:3*MIN,7:6*MIN,10:12*MIN};
+const NONO_LV={5:'연습',7:'기본',10:'도전'};
+const NONO_TAG={heart:1,home:2,tree:1,mug:2,umbrella:1,puppy:2};
+NONO.forEach(p=>{p.n=p.g.length;p.sol=p.g.map(r=>[...r].map(c=>c==='#'?1:0));
+  rkDefine('nono-'+p.id,{game:'nono',name:`${NONO_LV[p.n]} ${NONO_TAG[p.id]} · ${p.n}×${p.n}`,rule:`빨리 완성할수록 위예요. 제한 ${clockTxt(NONO_LIMIT[p.n])}.`,limit:NONO_LIMIT[p.n],key:r=>[r.ms],show:r=>mmss(r.ms)})});
+const lineClue=a=>{const o=[];let c=0;for(const v of a){if(v===1)c++;else if(c){o.push(c);c=0}}if(c)o.push(c);return o.length?o:[0]};
+let NN={p:0,mode:'fill',st:{}};
+const nnFresh=p=>({cells:p.sol.map(r=>r.map(()=>0)),t0:null,t1:null,done:false,gaveUp:false});
+const nnSt=()=>{const p=NONO[NN.p];return NN.st[p.id]||(NN.st[p.id]=nnFresh(p))};
+function renderNN(){
+  const p=NONO[NN.p],st=nnSt(),n=p.n;
+  const rowC=p.sol.map(r=>lineClue(r)),colC=p.sol[0].map((_,j)=>lineClue(p.sol.map(r=>r[j])));
+  const fillOf=a=>a.map(v=>v===1?1:0);
+  const rowOK=st.cells.map((r,i)=>lineClue(fillOf(r)).join()===rowC[i].join());
+  const colOK=colC.map((c,j)=>lineClue(fillOf(st.cells.map(r=>r[j]))).join()===c.join());
+  const maxC=Math.max(...colC.map(c=>c.length)),maxR=Math.max(...rowC.map(c=>c.length));
+  const cs=`min(${n<=5?78:n<=7?64:52}px, calc((100vh - 390px) / ${n+maxC}))`;
+  let html=`<table class="nn" style="--cs:${cs}"><thead>`;
+  for(let k=0;k<maxC;k++){html+=`<tr><th class="corner" colspan="1"></th>${colC.map((c,j)=>{const v=c[c.length-maxC+k];return `<th class="cc${colOK[j]?' ok':''}${j%5===4&&j<n-1?' b5':''}">${v==null?'':v}</th>`}).join('')}</tr>`}
+  html+=`</thead><tbody>${st.cells.map((r,i)=>`<tr><th class="rc${rowOK[i]?' ok':''}">${rowC[i].join('&nbsp; ')}</th>${r.map((v,j)=>{
+      const show=st.gaveUp?p.sol[i][j]:v;
+      return `<td class="${i%5===4&&i<n-1?'b5r':''}${j%5===4&&j<n-1?' b5':''}"><button type="button" class="nc${show===1?' on':show===2?' x':''}" data-nn="${i}|${j}" ${st.done||st.gaveUp?'disabled':''} aria-label="${i+1}행 ${j+1}열"></button></td>`}).join('')}</tr>`).join('')}</tbody></table>`;
+  const done=st.done?`<div class="result sketch f-mint"><b>완성! 그림은 ‘${p.name}’</b><span>${mmss(st.t1-st.t0)}${within(st.t0,st.t1,NONO_LIMIT[n])?'':' · 제한 시간 초과'}</span></div>`
+    :st.gaveUp?`<div class="result sketch f-lemon"><b>그림 공개</b><span>답을 본 기록은 랭킹에 오르지 않아요.</span></div>`:'';
+  stage.innerHTML=`<div class="ghead"><h2>네모 로직</h2><p>왼쪽과 위의 숫자는 그 줄에 이어서 칠할 칸의 수를 차례로 나타낸다. 숫자 사이에는 빈칸이 적어도 하나 있다. 숫자를 모두 맞추면 그림이 나온다.</p></div>
+    <div class="opts"><div class="seg"><span class="lb">그림</span>${NONO.map((x,k)=>`<button class="sketch f-lemon" type="button" data-nnp="${k}" aria-pressed="${k===NN.p}">${NONO_LV[x.n]} ${NONO_TAG[x.id]} · ${x.n}×${x.n}${NN.st[x.id]&&NN.st[x.id].done?' · 완성':''}</button>`).join('')}</div>
+      ${gtimeHTML()}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button></div>
+    <div class="nn-wrap">
+      <div class="nn-board">${html}</div>
+      <aside class="side sketch f-white">
+        <h3>${NONO_LV[n]} · ${n}×${n}</h3>
+        <div class="seg"><span class="lb">누르면</span><button class="sketch f-lemon" type="button" data-nnm="fill" aria-pressed="${NN.mode==='fill'}">칠하기</button><button class="sketch f-lemon" type="button" data-nnm="x" aria-pressed="${NN.mode==='x'}">X 표시</button></div>
+        <p class="note">X는 ‘여기는 빈칸’이라는 표시이다. 채점에는 들어가지 않는다. 숫자를 다 맞춘 줄은 숫자가 흐려진다.</p>
+        ${done}
+        <div class="btns">
+          ${st.done||st.gaveUp?'':`<button class="btn sketch f-paper ghost" type="button" data-act="nngive">포기하고 그림 보기</button>`}
+          <button class="btn sketch f-mint" type="button" data-act="nnnew">처음부터</button>
+        </div>
+      </aside>
+    </div>`;
+  gtimeTick();
+}
+const NONOGAME={
+  mount(){renderNN()},
+  timer(){const p=NONO[NN.p],st=nnSt();return st.gaveUp?null:{t0:st.t0,t1:st.t1,limit:NONO_LIMIT[p.n]}},
+  click(t){
+    if(t.dataset.nnp!=null){NN.p=+t.dataset.nnp;renderNN();return}
+    if(t.dataset.nnm){NN.mode=t.dataset.nnm;renderNN();return}
+    const p=NONO[NN.p],st=nnSt();
+    if(t.dataset.nn){const[i,j]=t.dataset.nn.split('|').map(Number);if(st.done||st.gaveUp)return;
+      if(!st.t0)st.t0=now();
+      const want=NN.mode==='fill'?1:2;st.cells[i][j]=st.cells[i][j]===want?0:want;
+      if(st.cells.every((r,a)=>r.every((v,b)=>(v===1?1:0)===p.sol[a][b]))){st.done=true;st.t1=now();renderNN();
+        if(within(st.t0,st.t1,NONO_LIMIT[p.n]))rkEntry('nono-'+p.id,{ms:st.t1-st.t0},`완성! 그림은 ‘${p.name}’`);return}
+      renderNN();return}
+    if(t.dataset.act==='nngive'){arm(t,'한 번 더 누르면 그림을 본다',()=>{st.gaveUp=true;renderNN()});return}
+    if(t.dataset.act==='nnnew'){NN.st[p.id]=nnFresh(p);renderNN()}
+  }
+};
+
+/* ───────── 하노이의 탑 ───────── */
+const HN_LIMIT={3:2*MIN,4:3*MIN,5:5*MIN,6:8*MIN};
+[3,4,5,6].forEach(n=>rkDefine('hanoi'+n,{game:'hanoi',name:`원판 ${n}개`,rule:`이동 횟수가 적을수록 위, 같으면 빨리 끝낸 사람이 위예요. 최소 ${2**n-1}번. 제한 ${clockTxt(HN_LIMIT[n])}.`,limit:HN_LIMIT[n],key:r=>[r.moves,r.ms],show:r=>`${r.moves}번 · ${mmss(r.ms)}`}));
+const HNset={n:4};let hn=null;
+const HN_FILL=['f-peach','f-sky','f-mint','f-lemon','f-rose','f-lav'];
+function hnNew(){hn={n:HNset.n,pegs:[range(1,HNset.n).reverse(),[],[]],sel:null,moves:0,t0:null,t1:null,done:false,msg:''}}
+function renderHN(){
+  const n=hn.n;
+  const pegs=hn.pegs.map((pg,k)=>`<button type="button" class="hn-peg${hn.sel===k?' sel':''}" data-hp="${k}" ${hn.done?'disabled':''} aria-label="${k+1}번 기둥, 원판 ${pg.length}개">
+      <span class="rod"></span>
+      <span class="stack">${pg.map((d,idx)=>`<span class="disk sketch ${HN_FILL[(d-1)%6]}${hn.sel===k&&idx===pg.length-1?' lift':''}" style="width:${30+62*d/n}%"></span>`).join('')}</span>
+      <span class="base"></span><span class="lbl">${['출발','가운데','도착'][k]}</span></button>`).join('');
+  stage.innerHTML=`<div class="ghead"><h2>하노이의 탑</h2><p>원판을 모두 오른쪽 기둥으로 옮기자. 한 번에 맨 위 원판 하나만 옮길 수 있고, 큰 원판을 작은 원판 위에 놓을 수 없다. 옮길 기둥을 누른 다음 놓을 기둥을 누르자.</p></div>
+    <div class="opts">${seg('원판','hnn',[[3,'3개'],[4,'4개'],[5,'5개'],[6,'6개']],HNset.n)}
+      ${gtimeHTML()}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button>
+      <button class="btn sketch f-paper ghost" type="button" data-act="hnnew">처음부터</button></div>
+    <div class="hn-info"><span>이동 <b>${hn.moves}</b>번</span><span class="note">최소 이동 횟수는 ${2**n-1}번이다.</span><span class="hn-msg${hn.done?' ok':''}">${hn.msg}</span></div>
+    <div class="hn">${pegs}</div>`;
+  gtimeTick();
+}
+const HANOI={
+  mount(){if(!hn||hn.n!==HNset.n)hnNew();renderHN()},
+  timer(){return{t0:hn.t0,t1:hn.t1,limit:HN_LIMIT[hn.n]}},
+  click(t){
+    if(t.dataset.seg==='hnn'){HNset.n=+t.dataset.v;hnNew();renderHN();return}
+    if(t.dataset.act==='hnnew'){hnNew();renderHN();return}
+    if(t.dataset.hp==null||hn.done)return;const k=+t.dataset.hp;hn.msg='';
+    if(hn.sel==null){if(hn.pegs[k].length)hn.sel=k;else hn.msg='빈 기둥이다. 원판이 있는 기둥을 먼저 누르자.'}
+    else if(hn.sel===k)hn.sel=null;
+    else{const from=hn.pegs[hn.sel],to=hn.pegs[k],d=from[from.length-1];
+      if(to.length&&to[to.length-1]<d){hn.msg='큰 원판은 작은 원판 위에 놓을 수 없다.';hn.sel=null}
+      else{if(!hn.t0)hn.t0=now();to.push(from.pop());hn.moves++;hn.sel=null;
+        if(hn.pegs[2].length===hn.n){hn.done=true;hn.t1=now();
+          hn.msg=hn.moves===2**hn.n-1?`완성! 최소 횟수 ${hn.moves}번으로 끝냈다.`:`완성! ${hn.moves}번 만에 끝냈다.`;renderHN();
+          if(within(hn.t0,hn.t1,HN_LIMIT[hn.n]))rkEntry('hanoi'+hn.n,{moves:hn.moves,ms:hn.t1-hn.t0},`원판 ${hn.n}개 완성!`);return}}}
+    renderHN();
+  }
+};
+
+/* ───────── 점과 선 ───────── */
+const DTset={n:4};let dt=null;
+function dtNew(){const n=DTset.n;dt={n,h:Array.from({length:n+1},()=>Array(n).fill(-1)),v:Array.from({length:n},()=>Array(n+1).fill(-1)),
+  box:Array.from({length:n},()=>Array(n).fill(-1)),turn:0,score:[0,0],pend:null,over:false,last:null,msg:''}}
+function dtBoxDone(r,c){return dt.h[r][c]>=0&&dt.h[r+1][c]>=0&&dt.v[r][c]>=0&&dt.v[r][c+1]>=0}
+function renderDT(){
+  const n=dt.n,L=`min(${n===3?150:118}px, calc((100vh - 410px) / ${n}))`;
+  let cells='';
+  for(let R=0;R<=2*n;R++)for(let C=0;C<=2*n;C++){
+    if(R%2===0&&C%2===0)cells+='<span class="dd"></span>';
+    else if(R%2===0){const r=R/2,c=(C-1)/2,o=dt.h[r][c],p=dt.pend&&dt.pend.join()===['h',r,c].join();
+      cells+=`<button type="button" class="de h${o>=0?' on p'+o:''}${p?' pend p'+dt.turn:''}${dt.last&&dt.last.join()===['h',r,c].join()?' last':''}" data-de="h|${r}|${c}" ${o>=0||dt.over?'disabled':''} aria-label="가로 선"></button>`}
+    else if(C%2===0){const r=(R-1)/2,c=C/2,o=dt.v[r][c],p=dt.pend&&dt.pend.join()===['v',r,c].join();
+      cells+=`<button type="button" class="de v${o>=0?' on p'+o:''}${p?' pend p'+dt.turn:''}${dt.last&&dt.last.join()===['v',r,c].join()?' last':''}" data-de="v|${r}|${c}" ${o>=0||dt.over?'disabled':''} aria-label="세로 선"></button>`}
+    else{const o=dt.box[(R-1)/2][(C-1)/2];cells+=`<span class="db${o>=0?' p'+o:''}">${o>=0?(o+1)+'P':''}</span>`}
+  }
+  const win=dt.over?(dt.score[0]===dt.score[1]?'무승부':`${dt.score[0]>dt.score[1]?1:2}P 승리`):'';
+  stage.innerHTML=`<div class="ghead"><h2>점과 선</h2><p>두 사람이 번갈아 점 사이에 선을 하나씩 긋는다. 네 변을 모두 그어 상자를 완성한 사람이 상자를 가져가고 한 번 더 긋는다. 상자를 더 많이 가져가면 승리한다.</p></div>
+    <div class="opts">${seg('판','dtn',[[3,'3×3'],[4,'4×4'],[5,'5×5']],DTset.n)}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button>
+      <button class="btn sketch f-paper ghost" type="button" data-act="dtnew">새 판</button></div>
+    <div class="dt-wrap">
+      <div class="dt-board"><div class="dt" style="--L:${L};grid-template-columns:repeat(${n},calc(var(--L) * .16) var(--L)) calc(var(--L) * .16);grid-template-rows:repeat(${n},calc(var(--L) * .16) var(--L)) calc(var(--L) * .16)">${cells}</div></div>
+      <aside class="side sketch f-white">
+        <h3>${dt.over?'경기 끝':'지금 차례'}</h3>
+        <div class="big-turn">${dt.over?win:`<span class="who-chip sketch ${dt.turn?'f-sky':'f-peach'}">${dt.turn+1}P</span>`}</div>
+        <p class="note">${dt.over?'':'선을 누르면 흐리게 보인다. 같은 선을 한 번 더 누르면 그어진다.'}</p>
+        <div class="tally"><span><span class="sw p0"></span>1P 상자</span><b>${dt.score[0]}</b><span><span class="sw p1"></span>2P 상자</span><b>${dt.score[1]}</b></div>
+        <p class="note">${dt.msg}</p>
+      </aside>
+    </div>`;
+}
+const DOTS={
+  mount(){if(!dt||dt.n!==DTset.n)dtNew();renderDT()},
+  click(t){
+    if(t.dataset.seg==='dtn'){DTset.n=+t.dataset.v;dtNew();renderDT();return}
+    if(t.dataset.act==='dtnew'){dtNew();renderDT();return}
+    if(!t.dataset.de||dt.over)return;
+    const[k,r,c]=t.dataset.de.split('|'),R=+r,C=+c,key=[k,R,C];
+    if(!dt.pend||dt.pend.join()!==key.join()){dt.pend=key;renderDT();return}
+    dt.pend=null;(k==='h'?dt.h:dt.v)[R][C]=dt.turn;dt.last=key;let got=0;
+    const around=k==='h'?[[R-1,C],[R,C]]:[[R,C-1],[R,C]];
+    for(const[a,b]of around)if(a>=0&&b>=0&&a<dt.n&&b<dt.n&&dt.box[a][b]<0&&dtBoxDone(a,b)){dt.box[a][b]=dt.turn;got++}
+    dt.score[dt.turn]+=got;dt.msg=got?`${dt.turn+1}P가 상자 ${got}개를 가져갔다. 한 번 더 긋자.`:'';
+    if(!got)dt.turn=1-dt.turn;
+    if(dt.score[0]+dt.score[1]===dt.n*dt.n){dt.over=true;dt.msg='';renderDT();
+      if(dt.score[0]!==dt.score[1]){const w=dt.score[0]>dt.score[1]?1:2;rkEntry('dots',null,`${w}P 승리! (${dt.score[0]} : ${dt.score[1]})`)}return}
+    renderDT();
+  }
+};
+
+/* ───────── 체스 ───────── */
+const CH_G={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟︎'};
+const CH_NAME={K:'킹',Q:'퀸',R:'룩',B:'비숍',N:'나이트',P:'폰'};
+rkDefine('chess',{game:'chess',name:'승리 횟수',rule:'체크메이트나 상대 기권으로 이긴 횟수가 많을수록 위예요.',win:true});
+let ch=null;
+function chNew(){const b=Array.from({length:8},()=>Array(8).fill(null)),back='RNBQKBNR';
+  for(let c=0;c<8;c++){b[0][c]='b'+back[c];b[1][c]='bP';b[6][c]='wP';b[7][c]='w'+back[c]}
+  ch={st:{b,turn:'w',cast:{wK:true,wQ:true,bK:true,bQ:true},ep:null},sel:null,hist:[],last:null,over:null,msg:'',cap:{w:[],b:[]},armed:null}}
+function chPseudo(st,r,c,atk){
+  const p=st.b[r][c];if(!p)return[];const col=p[0],t=p[1],out=[];
+  const add=(rr,cc)=>{if(rr<0||rr>7||cc<0||cc>7)return false;const q=st.b[rr][cc];if(q&&q[0]===col)return false;out.push({fr:r,fc:c,tr:rr,tc:cc});return !q};
+  if(t==='P'){const d=col==='w'?-1:1,start=col==='w'?6:1,last=col==='w'?0:7;
+    if(!atk&&r+d>=0&&r+d<=7&&!st.b[r+d][c]){out.push({fr:r,fc:c,tr:r+d,tc:c,promo:r+d===last});
+      if(r===start&&!st.b[r+2*d][c])out.push({fr:r,fc:c,tr:r+2*d,tc:c,dbl:true})}
+    for(const dc of[-1,1]){const rr=r+d,cc=c+dc;if(cc<0||cc>7||rr<0||rr>7)continue;const q=st.b[rr][cc];
+      if(atk){out.push({tr:rr,tc:cc});continue}
+      if(q&&q[0]!==col)out.push({fr:r,fc:c,tr:rr,tc:cc,promo:rr===last});
+      else if(!q&&st.ep&&st.ep[0]===rr&&st.ep[1]===cc)out.push({fr:r,fc:c,tr:rr,tc:cc,epCap:true})}
+    return out}
+  if(t==='N'){for(const[dr,dc]of[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]])add(r+dr,c+dc);return out}
+  if(t==='K'){for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if(dr||dc)add(r+dr,c+dc);
+    if(!atk){const home=col==='w'?7:0,en=col==='w'?'b':'w';
+      if(r===home&&c===4&&!chAttacked(st,home,4,en)){
+        if(st.cast[col+'K']&&st.b[home][7]===col+'R'&&!st.b[home][5]&&!st.b[home][6]&&!chAttacked(st,home,5,en)&&!chAttacked(st,home,6,en))out.push({fr:r,fc:c,tr:home,tc:6,castle:'K'});
+        if(st.cast[col+'Q']&&st.b[home][0]===col+'R'&&!st.b[home][1]&&!st.b[home][2]&&!st.b[home][3]&&!chAttacked(st,home,3,en)&&!chAttacked(st,home,2,en))out.push({fr:r,fc:c,tr:home,tc:2,castle:'Q'})}}
+    return out}
+  const D={B:[[1,1],[1,-1],[-1,1],[-1,-1]],R:[[1,0],[-1,0],[0,1],[0,-1]]};D.Q=D.B.concat(D.R);
+  for(const[dr,dc]of D[t]){let rr=r+dr,cc=c+dc;while(add(rr,cc)){rr+=dr;cc+=dc}}
+  return out;
+}
+function chAttacked(st,r,c,by){for(let i=0;i<8;i++)for(let j=0;j<8;j++){const p=st.b[i][j];if(p&&p[0]===by&&chPseudo(st,i,j,true).some(m=>m.tr===r&&m.tc===c))return true}return false}
+function chKing(st,col){for(let i=0;i<8;i++)for(let j=0;j<8;j++)if(st.b[i][j]===col+'K')return[i,j]}
+function chInCheck(st,col){const k=chKing(st,col);return chAttacked(st,k[0],k[1],col==='w'?'b':'w')}
+function chApply(st,m){
+  const b=st.b.map(r=>r.slice()),p=b[m.fr][m.fc];let capt=b[m.tr][m.tc];
+  b[m.tr][m.tc]=m.promo?p[0]+'Q':p;b[m.fr][m.fc]=null;
+  if(m.epCap){capt=b[m.fr][m.tc];b[m.fr][m.tc]=null}
+  if(m.castle==='K'){b[m.tr][5]=b[m.tr][7];b[m.tr][7]=null}
+  if(m.castle==='Q'){b[m.tr][3]=b[m.tr][0];b[m.tr][0]=null}
+  const cast={...st.cast};if(p[1]==='K'){cast[p[0]+'K']=false;cast[p[0]+'Q']=false}
+  const touch=(r,c)=>{if(r===7&&c===0)cast.wQ=false;if(r===7&&c===7)cast.wK=false;if(r===0&&c===0)cast.bQ=false;if(r===0&&c===7)cast.bK=false};
+  touch(m.fr,m.fc);touch(m.tr,m.tc);
+  return{st:{b,turn:st.turn==='w'?'b':'w',cast,ep:m.dbl?[(m.fr+m.tr)/2,m.fc]:null},capt};
+}
+function chLegalFrom(st,r,c){const p=st.b[r][c];if(!p||p[0]!==st.turn)return[];return chPseudo(st,r,c,false).filter(m=>!chInCheck(chApply(st,m).st,st.turn))}
+function chAllLegal(st){const out=[];for(let i=0;i<8;i++)for(let j=0;j<8;j++)out.push(...chLegalFrom(st,i,j));return out}
+const chSide=c=>c==='w'?'백':'흑';
+function renderCH(){
+  const st=ch.st,moves=ch.sel?chLegalFrom(st,ch.sel[0],ch.sel[1]):[],chk=!ch.over&&chInCheck(st,st.turn)?chKing(st,st.turn):null;
+  const S=`min(84px, calc((100vh - 350px) / 8.4))`;
+  let cells='';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=st.b[r][c],dark=(r+c)%2===1,isSel=ch.sel&&ch.sel[0]===r&&ch.sel[1]===c,mv=moves.find(m=>m.tr===r&&m.tc===c);
+    const last=ch.last&&((ch.last.fr===r&&ch.last.fc===c)||(ch.last.tr===r&&ch.last.tc===c));
+    cells+=`<button type="button" class="sq ${dark?'dk':'lt'}${isSel?' sel':''}${last?' last':''}${chk&&chk[0]===r&&chk[1]===c?' chk':''}${mv?(p||mv.epCap?' cap':' to'):''}" data-sq="${r}|${c}" ${ch.over?'disabled':''} aria-label="${'abcdefgh'[c]}${8-r}${p?' '+chSide(p[0])+' '+CH_NAME[p[1]]:''}">
+      ${p?`<span class="pc ${p[0]}">${CH_G[p[1]]}</span>`:''}${c===0?`<i class="rk-l">${8-r}</i>`:''}${r===7?`<i class="fl-l">${'abcdefgh'[c]}</i>`:''}</button>`}
+  const capList=col=>ch.cap[col].map(t=>`<span class="pc ${col==='w'?'b':'w'}">${CH_G[t]}</span>`).join('')||'<span class="note">없음</span>';
+  const state=ch.over?ch.over.text:`${chSide(st.turn)} 차례${chk?' · 체크!':''}`;
+  stage.innerHTML=`<div class="ghead"><h2>체스</h2><p>백이 먼저 둔다. 움직일 말을 누르면 갈 수 있는 칸이 점으로 보이고, 그 칸을 누르면 말이 움직인다. 상대 킹을 피할 수 없게 잡는 상황(체크메이트)을 만들면 승리한다.</p></div>
+   <div class="opts"><button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button><button class="btn sketch f-paper ghost" type="button" data-act="chnew">새 판</button></div>
+   <div class="ch-wrap">
+     <div class="ch-board"><div class="cb" style="--sq:${S}">${cells}</div></div>
+     <aside class="side sketch f-white">
+       <div class="big-turn">${ch.over?'':`<span class="stone ${st.turn==='w'?'w':'b'}"></span>`}${state}</div>
+       <p class="note">${ch.msg||''}</p>
+       <div class="caps"><b>백이 잡은 말</b><div>${capList('w')}</div><b>흑이 잡은 말</b><div>${capList('b')}</div></div>
+       <details class="howto"><summary>말이 움직이는 방법</summary><ul>
+         <li><b>킹</b> 모든 방향으로 한 칸</li><li><b>퀸</b> 모든 방향으로 여러 칸</li><li><b>룩</b> 가로·세로로 여러 칸</li>
+         <li><b>비숍</b> 대각선으로 여러 칸</li><li><b>나이트</b> L자로 이동, 다른 말을 뛰어넘는다</li>
+         <li><b>폰</b> 앞으로 한 칸(처음엔 두 칸), 잡을 때는 대각선 앞. 끝줄에 닿으면 퀸이 된다</li>
+         <li>캐슬링, 앙파상도 규칙대로 된다</li></ul></details>
+       <div class="btns">
+         <button class="btn sketch f-paper" type="button" data-act="chundo" ${!ch.hist.length||ch.over?'disabled':''}>한 수 무르기</button>
+         ${ch.over?'':`<button class="btn sketch f-paper ghost" type="button" data-act="chdraw">무승부로 끝내기</button>
+         <button class="btn sketch f-rose" type="button" data-act="chresign">${chSide(st.turn)} 기권</button>`}
+       </div>
+     </aside>
+   </div>`;
+}
+function chEnd(text,winner){ch.over={text,winner};ch.sel=null;renderCH();if(winner)setTimeout(()=>rkEntry('chess',null,text),400)}
+function chMove(m){
+  const st=ch.st,p=st.b[m.fr][m.fc],res=chApply(st,m);
+  ch.hist.push({st,last:ch.last,cap:{w:ch.cap.w.slice(),b:ch.cap.b.slice()}});
+  if(res.capt)ch.cap[p[0]].push(res.capt[1]);
+  ch.st=res.st;ch.last=m;ch.sel=null;
+  ch.msg=m.promo?'폰이 끝줄에 닿아 퀸이 되었다.':m.castle?'캐슬링을 했다.':m.epCap?'앙파상으로 폰을 잡았다.':'';
+  const legal=chAllLegal(ch.st);
+  if(!legal.length){if(chInCheck(ch.st,ch.st.turn))chEnd(`체크메이트! ${chSide(p[0])} 승리`,p[0]);else chEnd('스테일메이트 · 무승부',null);return}
+  renderCH();
+}
+const CHESS={
+  mount(){if(!ch)chNew();renderCH()},
+  click(t){
+    const a=t.dataset.act;
+    if(a==='chnew'){chNew();renderCH();return}
+    if(a==='chundo'&&ch.hist.length&&!ch.over){const h=ch.hist.pop();ch.st=h.st;ch.last=h.last;ch.cap=h.cap;ch.sel=null;ch.msg='한 수를 물렀다.';renderCH();return}
+    if(a==='chdraw'){arm(t,'한 번 더 누르면 무승부',()=>chEnd('합의 무승부',null));return}
+    if(a==='chresign'){const loser=ch.st.turn,win=loser==='w'?'b':'w';arm(t,'한 번 더 누르면 기권',()=>chEnd(`${chSide(loser)} 기권 · ${chSide(win)} 승리`,win));return}
+    if(!t.dataset.sq||ch.over)return;
+    const[r,c]=t.dataset.sq.split('|').map(Number),st=ch.st,p=st.b[r][c];
+    if(ch.sel){const m=chLegalFrom(st,ch.sel[0],ch.sel[1]).find(x=>x.tr===r&&x.tc===c);if(m){chMove(m);return}}
+    ch.sel=p&&p[0]===st.turn&&!(ch.sel&&ch.sel[0]===r&&ch.sel[1]===c)?[r,c]:null;
+    if(p&&p[0]!==st.turn&&!ch.sel)ch.msg=`지금은 ${chSide(st.turn)} 차례이다.`;else ch.msg='';
+    renderCH();
+  }
+};
+
+/* ───────── 오델로 ───────── */
+rkDefine('othello',{game:'othello',name:'승리 횟수',rule:'이긴 횟수가 많을수록 위예요.',win:true});
+const OD8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+let oth=null;
+function othNew(){const b=Array.from({length:8},()=>Array(8).fill(0));b[3][3]=b[4][4]=2;b[3][4]=b[4][3]=1;oth={b,turn:1,pend:null,hist:[],last:null,over:false,msg:''}}
+function othFlips(b,r,c,p){if(b[r][c])return[];const o=3-p,out=[];
+  for(const[dr,dc]of OD8){let i=r+dr,j=c+dc;const line=[];while(i>=0&&i<8&&j>=0&&j<8&&b[i][j]===o){line.push([i,j]);i+=dr;j+=dc}
+    if(line.length&&i>=0&&i<8&&j>=0&&j<8&&b[i][j]===p)out.push(...line)}return out}
+function othMoves(b,p){const m=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(othFlips(b,r,c,p).length)m.push([r,c]);return m}
+const othCount=b=>{let x=[0,0,0];for(const r of b)for(const v of r)x[v]++;return x};
+const othName=p=>p===1?'흑':'백';
+function renderOTH(){
+  const b=oth.b,mv=oth.over?[]:othMoves(b,oth.turn),cnt=othCount(b),S=`min(80px, calc((100vh - 360px) / 8.4))`;
+  const flips=oth.pend?othFlips(b,oth.pend[0],oth.pend[1],oth.turn):[];
+  let cells='';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const v=b[r][c],legal=mv.some(m=>m[0]===r&&m[1]===c),pend=oth.pend&&oth.pend[0]===r&&oth.pend[1]===c,fl=flips.some(f=>f[0]===r&&f[1]===c);
+    cells+=`<button type="button" class="oq${legal?' ok':''}${pend?' pend':''}${fl?' fl':''}${oth.last&&oth.last[0]===r&&oth.last[1]===c?' last':''}" data-oq="${r}|${c}" ${!legal&&!pend?'disabled':''} aria-label="${r+1}행 ${c+1}열">${v?`<span class="os ${v===1?'b':'w'}"></span>`:pend?`<span class="os ${oth.turn===1?'b':'w'} ghost"></span>`:''}</button>`}
+  const win=oth.over?(cnt[1]===cnt[2]?'무승부':`${cnt[1]>cnt[2]?'흑':'백'} 승리`):'';
+  stage.innerHTML=`<div class="ghead"><h2>오델로</h2><p>흑이 먼저 둔다. 상대 돌을 내 돌 사이에 끼우도록 놓으면 끼인 돌이 모두 내 색으로 뒤집힌다. 둘 곳이 없으면 차례가 넘어가고, 판이 끝났을 때 돌이 많은 쪽이 승리한다.</p></div>
+   <div class="opts"><button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button><button class="btn sketch f-paper ghost" type="button" data-act="othnew">새 판</button></div>
+   <div class="ch-wrap"><div class="ch-board"><div class="ob" style="--sq:${S}">${cells}</div></div>
+     <aside class="side sketch f-white">
+       <h3>${oth.over?'경기 끝':'지금 차례'}</h3>
+       <div class="big-turn">${oth.over?win:`<span class="stone ${oth.turn===1?'b':'w'}"></span>${othName(oth.turn)}`}</div>
+       <p class="note">${oth.over?'':'점이 찍힌 칸에만 둘 수 있다. 누르면 흐린 돌과 뒤집힐 돌이 보이고, 같은 칸을 한 번 더 누르면 놓인다.'}</p>
+       <div class="tally"><span><span class="stone b"></span>흑</span><b>${cnt[1]}</b><span><span class="stone w"></span>백</span><b>${cnt[2]}</b></div>
+       <p class="note">${oth.msg}</p>
+       <div class="btns"><button class="btn sketch f-paper" type="button" data-act="othundo" ${!oth.hist.length||oth.over?'disabled':''}>한 수 무르기</button></div>
+     </aside></div>`;
+}
+const OTHELLO={
+  mount(){if(!oth)othNew();renderOTH()},
+  click(t){
+    if(t.dataset.act==='othnew'){othNew();renderOTH();return}
+    if(t.dataset.act==='othundo'&&oth.hist.length){const h=oth.hist.pop();oth.b=h.b;oth.turn=h.turn;oth.last=h.last;oth.pend=null;oth.msg='한 수를 물렀다.';renderOTH();return}
+    if(!t.dataset.oq||oth.over)return;const[r,c]=t.dataset.oq.split('|').map(Number);
+    if(!oth.pend||oth.pend[0]!==r||oth.pend[1]!==c){oth.pend=[r,c];renderOTH();return}
+    const f=othFlips(oth.b,r,c,oth.turn);if(!f.length)return;
+    oth.hist.push({b:oth.b.map(x=>x.slice()),turn:oth.turn,last:oth.last});
+    oth.b[r][c]=oth.turn;for(const[i,j]of f)oth.b[i][j]=oth.turn;oth.last=[r,c];oth.pend=null;oth.msg='';
+    const nx=3-oth.turn;
+    if(othMoves(oth.b,nx).length)oth.turn=nx;
+    else if(othMoves(oth.b,oth.turn).length)oth.msg=`${othName(nx)}은(는) 둘 곳이 없어 차례가 넘어갔다.`;
+    else{oth.over=true;renderOTH();const k=othCount(oth.b);if(k[1]!==k[2])setTimeout(()=>rkEntry('othello',null,`${k[1]>k[2]?'흑':'백'} 승리! (${k[1]} : ${k[2]})`),400);return}
+    renderOTH();
+  }
+};
+
+/* ───────── 24 만들기 ───────── */
+rkDefine('t24',{game:'t24',name:'랭킹 도전 5문제',rule:'5문제를 푼 시간이 짧을수록 위예요. 힌트 1회마다 30초를 더해요. 제한 10분.',limit:10*MIN,key:r=>[r.ms+r.hints*30000],show:r=>mmss(r.ms+r.hints*30000)+(r.hints?` (힌트 ${r.hints}회 포함)`:'')});
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1};
+const F=(n,d=1)=>{if(d<0){n=-n;d=-d}const g=gcd(n,d);return{n:n/g,d:d/g}};
+const fTxt=f=>f.d===1?String(f.n):`${f.n}/${f.d}`;
+const OPS=[['+',(a,b)=>F(a.n*b.d+b.n*a.d,a.d*b.d)],['−',(a,b)=>F(a.n*b.d-b.n*a.d,a.d*b.d)],['×',(a,b)=>F(a.n*b.n,a.d*b.d)],['÷',(a,b)=>b.n===0?null:F(a.n*b.d,a.d*b.n)]];
+function solve24(cards){
+  if(cards.length===1)return cards[0].v.n===24&&cards[0].v.d===1?[]:null;
+  for(let i=0;i<cards.length;i++)for(let j=0;j<cards.length;j++){if(i===j)continue;
+    for(const[sym,fn]of OPS){if((sym==='+'||sym==='×')&&i>j)continue;const v=fn(cards[i].v,cards[j].v);if(!v)continue;
+      const rest=cards.filter((_,k)=>k!==i&&k!==j);const e=`(${cards[i].e} ${sym} ${cards[j].e})`;
+      const sub=solve24([...rest,{v,e}]);if(sub)return[{a:cards[i],b:cards[j],sym,v,e},...sub]}}
+  return null;
+}
+const strip=e=>e.replace(/^\((.*)\)$/,'$1');
+function t24Problem(){for(;;){const ns=[0,0,0,0].map(()=>1+Math.floor(Math.random()*9));const cards=ns.map(n=>({v:F(n),e:String(n)}));const s=solve24(cards);if(s)return ns}}
+let T24={mode:'free',p:null,cards:[],sel:null,op:null,log:[],undo:[],state:'',hint:'',solved:0,tried:0,run:null};
+function t24Load(ns){T24.p=ns;T24.cards=ns.map((n,i)=>({id:i,v:F(n),e:String(n)}));T24.sel=null;T24.op=null;T24.log=[];T24.undo=[];T24.state='';T24.hint=''}
+function t24Hint(){
+  const s=solve24(T24.cards.map(c=>({v:c.v,e:c.e})));
+  if(!s)return '지금 상태로는 24를 만들 수 없다. 되돌리기를 눌러 보자.';
+  const st=s[0];return `먼저 ${fTxt(st.a.v)} ${st.sym} ${fTxt(st.b.v)} = ${fTxt(st.v)}를 만들어 보자.`;
+}
+function renderT24(){
+  const run=T24.run,rank=T24.mode==='rank';
+  const head=`<div class="ghead"><h2>24 만들기</h2><p>네 수를 모두 한 번씩 쓰고 +, −, ×, ÷를 이용해 24를 만들자. 수 하나를 누르고, 연산을 누르고, 다른 수를 누르면 두 수가 계산 결과 하나로 합쳐진다. 분수도 쓸 수 있다.</p></div>
+    <div class="opts">${seg('방식','t24m',[['free','자유 풀이'],['rank','랭킹 도전 (5문제)']],T24.mode)}${gtimeHTML()}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button></div>`;
+  if(rank&&run.phase==='ready'){stage.innerHTML=head+`<div class="bqr-ready sketch f-lemon"><b>랭킹 도전</b><ul><li>24를 만들 수 있는 문제가 5개 나온다.</li><li>5문제를 모두 푼 시간으로 순위를 매긴다. 힌트 1회마다 30초가 더해진다.</li><li>답 보기를 누르면 도전이 끝난다. 제한 시간은 10분이다.</li></ul><button class="btn big sketch f-mint" type="button" data-act="t24go">시작</button></div>`;gtimeTick();return}
+  if(rank&&run.phase==='end'){stage.innerHTML=head+`<div class="bqr-ready sketch f-lemon"><b>${run.fail?'도전 종료':'5문제 완료!'}</b><p>${run.fail?'답을 보아 이번 도전은 랭킹에 오르지 않는다.':`걸린 시간 ${mmss(run.t1-run.t0)} · 힌트 ${run.hints}회`}</p><button class="btn big sketch f-mint" type="button" data-act="t24again">다시 도전</button></div>`;gtimeTick();return}
+  const cards=T24.cards.map(c=>`<button type="button" class="t24c sketch ${T24.sel===c.id?'f-lemon':'f-white'}${T24.cards.length===1&&T24.state==='ok'?' win':''}" data-tc="${c.id}" ${T24.state?'disabled':''}>${fTxt(c.v)}</button>`).join('');
+  const ops=OPS.map(([s])=>`<button type="button" class="t24o sketch ${T24.op===s?'f-mint':'f-paper'}" data-to="${s}" ${T24.sel==null||T24.state?'disabled':''}>${s}</button>`).join('');
+  const sol=T24.state==='give'?strip(solve24(T24.p.map(n=>({v:F(n),e:String(n)}))).slice(-1)[0].e):'';
+  stage.innerHTML=head+`<div class="t24-top"><span class="note">${rank?`${run.i+1} / 5번째 문제 · 힌트 ${run.hints}회`:`맞힌 문제 ${T24.solved}개`}</span><span class="note">처음 수: ${T24.p.join(', ')}</span></div>
+    <div class="t24">
+      <div class="t24-main sketch f-white">
+        <div class="t24-cards">${cards}</div>
+        <div class="t24-ops">${ops}</div>
+        <p class="t24-say">${T24.state==='ok'?'24 완성!':T24.state==='no'?`${fTxt(T24.cards[0].v)}이(가) 나왔다. 24가 아니다.`:T24.state==='give'?`답의 예: ${sol} = 24`:T24.sel==null?'수 하나를 고르자.':T24.op==null?'연산을 고르자.':'다른 수를 고르자.'}</p>
+      </div>
+      <aside class="side sketch f-white">
+        <h3>계산 기록</h3>
+        <ol class="t24-log">${T24.log.map(x=>`<li>${x}</li>`).join('')||'<li class="note">아직 계산하지 않았다.</li>'}</ol>
+        ${T24.hint?`<p class="bq-hint">${T24.hint}</p>`:''}
+        <div class="btns">
+          <button class="btn sketch f-paper" type="button" data-act="t24undo" ${!T24.undo.length||T24.state==='ok'||T24.state==='give'?'disabled':''}>되돌리기</button>
+          <button class="btn sketch f-paper" type="button" data-act="t24hint" ${T24.state==='ok'||T24.state==='give'?'disabled':''}>힌트</button>
+          ${T24.state==='ok'||T24.state==='give'?`<button class="btn sketch f-mint" type="button" data-act="t24next">${rank&&run.i===4&&T24.state==='ok'?'결과 보기':'다음 문제'}</button>`:`<button class="btn sketch f-paper ghost" type="button" data-act="t24give">답 보기</button>`}
+        </div>
+      </aside>
+    </div>`;
+  gtimeTick();
+}
+function t24Next(){if(T24.mode==='rank'){T24.run.i++;t24Load(T24.run.set[T24.run.i])}else t24Load(t24Problem())}
+const T24GAME={
+  mount(){if(!T24.p)t24Load(t24Problem());if(!T24.run)T24.run={phase:'ready'};renderT24()},
+  timer(){return T24.mode==='rank'?{t0:T24.run.t0||null,t1:T24.run.t1||null,limit:RK.t24.limit}:null},
+  click(t){
+    if(t.dataset.seg==='t24m'){T24.mode=t.dataset.v;T24.run={phase:'ready'};if(T24.mode==='free')t24Load(t24Problem());renderT24();return}
+    const a=t.dataset.act;
+    if(a==='t24go'||a==='t24again'){T24.run={phase:a==='t24go'?'run':'ready',set:[0,1,2,3,4].map(t24Problem),i:0,hints:0,t0:a==='t24go'?now():null};if(a==='t24go')t24Load(T24.run.set[0]);renderT24();return}
+    if(t.dataset.tc!=null){const id=+t.dataset.tc;
+      if(T24.sel==null||T24.op==null||T24.sel===id){T24.sel=T24.sel===id?null:id;T24.op=null;renderT24();return}
+      const A=T24.cards.find(c=>c.id===T24.sel),B=T24.cards.find(c=>c.id===id),fn=OPS.find(o=>o[0]===T24.op)[1],v=fn(A.v,B.v);
+      if(!v){T24.hint='0으로 나눌 수 없다.';T24.op=null;renderT24();return}
+      T24.undo.push({cards:T24.cards.map(c=>({...c})),log:T24.log.slice()});
+      T24.log.push(`${fTxt(A.v)} ${T24.op} ${fTxt(B.v)} = ${fTxt(v)}`);
+      T24.cards=T24.cards.filter(c=>c.id!==A.id).map(c=>c.id===B.id?{id:B.id,v,e:`(${A.e} ${T24.op} ${B.e})`}:c);
+      T24.sel=B.id;T24.op=null;T24.hint='';
+      if(T24.cards.length===1){const ok=v.n===24&&v.d===1;T24.state=ok?'ok':'no';T24.sel=null;
+        if(ok){if(T24.mode==='free')T24.solved++;else if(T24.run.i===4){T24.run.t1=now()}}}
+      renderT24();return}
+    if(t.dataset.to){T24.op=t.dataset.to;renderT24();return}
+    if(a==='t24undo'&&T24.undo.length){const u=T24.undo.pop();T24.cards=u.cards;T24.log=u.log;T24.sel=null;T24.op=null;T24.state='';renderT24();return}
+    if(a==='t24hint'){T24.hint=t24Hint();if(T24.mode==='rank')T24.run.hints++;renderT24();return}
+    if(a==='t24give'){arm(t,'한 번 더 누르면 답을 본다',()=>{T24.state='give';if(T24.mode==='rank'){T24.run.fail=true}renderT24()});return}
+    if(a==='t24next'){
+      if(T24.mode==='rank'&&(T24.run.fail||(T24.run.i===4&&T24.state==='ok'))){T24.run.phase='end';if(!T24.run.t1)T24.run.t1=now();renderT24();
+        if(!T24.run.fail&&within(T24.run.t0,T24.run.t1,RK.t24.limit))rkEntry('t24',{ms:T24.run.t1-T24.run.t0,hints:T24.run.hints},'5문제 완료!');return}
+      t24Next();renderT24();
+    }
+  }
+};
+
+/* ───────── 퀴즈 공통 (영단어 · 맞춤법) ───────── */
+function makeQuiz(cfg){
+  const S={mode:'free',q:null,sel:null,st:'',ok:0,n:0,run:null,typ:cfg.types?cfg.types[0][0]:null,spell:''};
+  rkDefine(cfg.id,{game:cfg.id,name:`랭킹 도전 ${cfg.count}문제`,rule:`${cfg.count}문제 중 맞힌 수가 많을수록 위, 같으면 빨리 끝낸 사람이 위예요. 제한 ${clockTxt(cfg.limit)}.`,limit:cfg.limit,key:r=>[-r.ok,r.ms],show:r=>`${r.ok}/${cfg.count} · ${mmss(r.ms)}`});
+  const newQ=()=>{let q,n=0;const used=S.mode==='rank'&&S.run&&S.run.used;
+    do{q=cfg.gen(S.mode==='rank'?null:S.typ);n++}while(n<80&&(used?used.has(q.key):S.q&&S.q.key===q.key));
+    if(used)used.add(q.key);S.q=q;S.sel=null;S.st='';S.spell=''};
+  function qHTML(){
+    const q=S.q,done=S.st==='ok'||S.st==='no';
+    let body;
+    if(q.type==='spell'){
+      const used=S.spell.split('|').filter(Boolean).map(Number);
+      body=`<div class="sp-ans">${q.word.split('').map((_,i)=>`<span>${used[i]!=null?q.tiles[used[i]]:''}</span>`).join('')}</div>
+        <div class="sp-tiles">${q.tiles.map((ch,i)=>`<button type="button" class="sketch f-lemon" data-sp="${i}" ${used.includes(i)||done?'disabled':''}>${ch}</button>`).join('')}</div>
+        ${done?'':`<div class="ctrl"><button class="btn sketch f-paper" type="button" data-act="qzback" ${!used.length?'disabled':''}>한 글자 지우기</button></div>`}`;
+    }else{
+      body=`<div class="bq-opts qz-opts">${q.opts.map((o,k)=>{let c='';if(done&&k===q.a)c=' right';else if(S.st==='no'&&S.sel===k)c=' wrong';else if(S.sel===k)c=' sel';
+        return `<button type="button" class="bq-opt sketch f-white${c}" data-qo="${k}" ${done?'disabled':''}><span class="k">${k+1}</span><span>${o}</span></button>`}).join('')}</div>
+        ${done?'':`<div class="ctrl"><button class="btn big sketch f-mint reveal" type="button" data-act="qzcheck" ${S.sel==null?'disabled':''}>정답 확인</button></div>`}`;
+    }
+    const fb=S.st==='ok'?`<div class="bq-fb ok">정답!</div>`:S.st==='no'?`<div class="bq-fb no">아쉽다. 정답은 ‘${q.answer}’이다.</div>`:'';
+    return `<div class="qz sketch f-white"><p class="qz-p">${q.prompt}</p><div class="qz-big">${q.big}</div>${body}${fb}
+      ${done&&q.w?`<div class="steps sketch f-lemon"><b>해설</b><p>${q.w}</p></div>`:''}
+      ${done?`<div class="ctrl"><button class="btn big sketch f-lemon reveal" type="button" data-act="qznext">${S.mode==='rank'&&S.run.i===cfg.count-1?'결과 보기':'다음 문제'}</button></div>`:''}</div>`;
+  }
+  function render(){
+    const head=`<div class="ghead"><h2>${cfg.title}</h2><p>${typeof cfg.desc==='function'?cfg.desc():cfg.desc}</p></div>
+      <div class="opts">${seg('방식',cfg.id+'m',[['free','자유 풀이'],['rank',`랭킹 도전 (${cfg.count}문제)`]],S.mode)}
+      ${S.mode==='free'&&cfg.types?seg('유형',cfg.id+'t',cfg.types,S.typ):''}${gtimeHTML()}<button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button>${cfg.tools?cfg.tools():''}</div>`;
+    if(S.mode==='rank'&&S.run.phase==='ready'){stage.innerHTML=head+`<div class="bqr-ready sketch f-lemon"><b>랭킹 도전</b><ul><li>${cfg.count}문제가 무작위로 나온다. 문제마다 한 번만 답할 수 있다.</li><li>맞힌 수가 많을수록, 같으면 빨리 끝낼수록 순위가 높다. 제한 시간은 ${clockTxt(cfg.limit)}이다.</li></ul><button class="btn big sketch f-mint" type="button" data-act="qzgo">시작</button></div>`;gtimeTick();return}
+    if(S.mode==='rank'&&S.run.phase==='end'){stage.innerHTML=head+`<div class="res-top"><div class="lbig">${S.run.ok}<small> / ${cfg.count} 정답</small></div><div class="chips"><span class="sketch f-paper">${mmss(S.run.t1-S.run.t0)}</span></div></div>
+      <div class="rwrap"><table class="rtab"><thead><tr><th>#</th><th>문제</th><th>정답</th><th>결과</th></tr></thead><tbody>${S.run.log.map((x,i)=>`<tr><td>${i+1}</td><td>${x.q}</td><td>${x.a}</td><td>${x.ok?'<span class="ox o">O</span>':'<span class="ox x">X</span>'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="ctrl"><button class="btn big sketch f-mint reveal" type="button" data-act="qzagain">다시 도전</button></div>`;gtimeTick();return}
+    stage.innerHTML=head+`<div class="bq-top"><span class="note">${S.mode==='rank'?`${S.run.i+1} / ${cfg.count}번째 문제`:`맞힌 문제 ${S.ok} / 푼 문제 ${S.n}`}</span></div>${qHTML()}`;
+    gtimeTick();
+  }
+  function judge(ok){S.st=ok?'ok':'no';
+    if(S.mode==='free'){S.n++;if(ok)S.ok++}
+    else{S.run.log.push({q:S.q.plain,a:S.q.answer,ok});if(ok)S.run.ok++}}
+  return{
+    mount(){if(!S.q)newQ();if(!S.run)S.run={phase:'ready'};render()},
+    timer(){return S.mode==='rank'?{t0:S.run.t0||null,t1:S.run.t1||null,limit:cfg.limit}:null},
+    rerender(){newQ();render()},
+    click(t){
+      if(cfg.toolClick&&cfg.toolClick(t))return;
+      if(t.dataset.seg===cfg.id+'m'){S.mode=t.dataset.v;S.run={phase:'ready'};newQ();render();return}
+      if(t.dataset.seg===cfg.id+'t'){S.typ=t.dataset.v;newQ();render();return}
+      const a=t.dataset.act;
+      if(a==='qzgo'){S.run={phase:'run',i:0,ok:0,log:[],t0:now(),used:new Set()};newQ();render();return}
+      if(a==='qzagain'){S.run={phase:'ready'};render();return}
+      if(t.dataset.qo!=null){S.sel=+t.dataset.qo;render();return}
+      if(a==='qzcheck'&&S.sel!=null){judge(S.sel===S.q.a);render();return}
+      if(t.dataset.sp!=null){S.spell+=(S.spell?'|':'')+t.dataset.sp;const used=S.spell.split('|').map(Number);
+        if(used.length===S.q.word.length)judge(used.map(i=>S.q.tiles[i]).join('')===S.q.word);render();return}
+      if(a==='qzback'){S.spell=S.spell.split('|').slice(0,-1).join('|');render();return}
+      if(a==='qznext'){
+        if(S.mode==='rank'){S.run.i++;if(S.run.i>=cfg.count){S.run.phase='end';S.run.t1=now();render();
+          if(within(S.run.t0,S.run.t1,cfg.limit))rkEntry(cfg.id,{ok:S.run.ok,ms:S.run.t1-S.run.t0},`${S.run.ok}문제를 맞혔다!`);return}}
+        newQ();render();
+      }
+    }
+  };
+}
+
+/* ───────── 영단어 퀴즈 ───────── */
+const WORDS_DEFAULT=`abandon,버리다
+accept,받아들이다
+achieve,성취하다
+adapt,적응하다
+admit,인정하다
+affect,영향을 미치다
+ancient,고대의
+anxious,불안해하는
+appreciate,감사하다
+approach,접근하다
+appropriate,적절한
+argue,논쟁하다
+arrange,배열하다
+attempt,시도하다
+attitude,태도
+available,이용할 수 있는
+avoid,피하다
+aware,알고 있는
+behavior,행동
+benefit,이익
+bother,귀찮게 하다
+capable,능력 있는
+career,직업 경력
+challenge,도전
+character,성격
+circumstance,상황
+claim,주장하다
+colleague,동료
+communicate,의사소통하다
+compare,비교하다
+compete,경쟁하다
+complain,불평하다
+concentrate,집중하다
+concern,걱정
+conclusion,결론
+confident,자신 있는
+consider,고려하다
+consist,이루어져 있다
+constant,끊임없는
+contain,담고 있다
+contribute,기여하다
+convenient,편리한
+create,창조하다
+crucial,중대한
+curious,호기심 많은
+defend,방어하다
+demand,요구하다
+deny,부인하다
+depend,의존하다
+describe,묘사하다
+deserve,받을 만하다
+destroy,파괴하다
+determine,결정하다
+develop,개발하다
+disappear,사라지다
+distinguish,구별하다
+efficient,효율적인
+effort,노력
+emotion,감정
+emphasize,강조하다
+encourage,격려하다
+environment,환경
+essential,필수적인
+evaluate,평가하다
+evidence,증거
+exaggerate,과장하다
+examine,조사하다
+expand,확장하다
+expense,비용
+explore,탐험하다
+factor,요인
+familiar,익숙한
+feature,특징
+flexible,유연한
+frequent,잦은
+generous,관대한
+gradually,점차
+identify,확인하다
+ignore,무시하다
+imitate,모방하다
+improve,향상시키다
+include,포함하다
+increase,증가하다
+intend,의도하다
+maintain,유지하다
+method,방법
+necessary,필요한
+neglect,소홀히 하다
+obvious,분명한
+occur,발생하다
+opportunity,기회
+participate,참여하다
+patient,참을성 있는
+perform,수행하다
+persuade,설득하다
+positive,긍정적인
+predict,예측하다
+prefer,더 좋아하다
+prevent,예방하다
+previous,이전의
+produce,생산하다
+protect,보호하다
+purpose,목적
+pursue,추구하다
+recognize,알아보다
+recommend,추천하다
+reduce,줄이다
+refuse,거절하다
+regret,후회하다
+remain,남아 있다
+remove,제거하다
+replace,대체하다
+require,필요로 하다
+resource,자원
+respond,응답하다
+responsible,책임 있는
+reveal,드러내다
+satisfy,만족시키다
+significant,상당한
+solve,해결하다
+specific,구체적인
+suggest,제안하다
+survive,살아남다
+tend,경향이 있다
+therefore,그러므로
+tradition,전통
+transform,변형시키다
+unique,독특한
+valuable,귀중한
+various,다양한
+volunteer,자원봉사자`;
+function parseWords(txt){const out=[],seenW=new Set(),seenM=new Set();
+  for(const line of txt.split(/\r?\n/)){const m=line.split(/[,\t]/);if(m.length<2)continue;const w=m[0].trim().toLowerCase(),k=m.slice(1).join(',').trim();
+    if(!/^[a-z][a-z\-' ]*$/.test(w)||!k||seenW.has(w)||seenM.has(k))continue;seenW.add(w);seenM.add(k);out.push([w,k])}return out}
+let WORDS=parseWords(WORDS_DEFAULT),wordsCustom=false;
+try{const c=localStorage.getItem('break-arcade-words');if(c){const p=parseWords(c);if(p.length>=8){WORDS=p;wordsCustom=true}}}catch(_){}
+const pick=(arr,n,ex)=>shuffle(arr.filter(x=>x!==ex)).slice(0,n);
+function wordQ(typ){
+  const t=typ||['e2k','k2e','spell'][Math.floor(Math.random()*3)];
+  const [w,k]=WORDS[Math.floor(Math.random()*WORDS.length)];
+  if(t==='spell'){return{type:'spell',key:w,plain:k,prompt:'뜻에 맞는 영어 단어를 글자를 눌러 완성하자.',big:`<span class="qz-k">${k}</span>`,word:w,tiles:shuffle(w.split('')),answer:w,w:''}}
+  const others=pick(WORDS,3,WORDS.find(x=>x[0]===w));
+  if(t==='e2k'){const opts=shuffle([k,...others.map(x=>x[1])]);return{type:'choice',key:w,plain:w,prompt:'이 단어의 뜻은?',big:`<span class="qz-e">${w}</span>`,opts,a:opts.indexOf(k),answer:k,w:`${w} : ${k}`}}
+  const opts=shuffle([w,...others.map(x=>x[0])]);return{type:'choice',key:w,plain:k,prompt:'이 뜻을 가진 영어 단어는?',big:`<span class="qz-k">${k}</span>`,opts,a:opts.indexOf(w),answer:w,w:`${w} : ${k}`};
+}
+const WORDQ=makeQuiz({id:'word',title:'영단어 퀴즈',count:10,limit:5*MIN,
+  desc:()=>`${wordsCustom?'선생님이 넣은':'고1 수준 필수'} 어휘 ${WORDS.length}개에서 나온다. 뜻 고르기, 단어 고르기, 철자 맞히기 세 가지 유형이 있다.`,
+  types:[['e2k','뜻 고르기'],['k2e','단어 고르기'],['spell','철자 맞히기']],gen:wordQ,
+  tools:()=>`<button class="btn sketch f-paper ghost" type="button" data-act="wlist">단어 목록 바꾸기 (선생님)</button>`,
+  toolClick:t=>{if(t.dataset.act==='wlist'){ovState={mode:'words',pin:'',ok:false,warn:''};ovRender();return true}return false}});
+
+/* ───────── 맞춤법 퀴즈 ───────── */
+const SPELL=[
+ ['이 일은 내일까지 끝내야 ___.','돼요','되요','‘되어요’가 줄어든 말이 ‘돼요’이다. ‘되’ 자리에 ‘되어’를 넣어 말이 되면 ‘돼’를 쓴다.'],
+ ['어제는 숙제를 ___ 했다.','안','않','‘안’은 ‘아니’가 줄어든 말로 서술어 앞에 온다. ‘않’은 ‘-지 않다’처럼 쓴다.'],
+ ['요즘은 게임을 하지 ___.','않는다','안는다','‘-지’ 뒤에는 ‘않다’를 쓴다. ‘안다’는 품에 안는다는 뜻이다.'],
+ ['오늘은 ___ 기분이 좋다.','왠지','웬지','‘왠지’는 ‘왜인지’가 줄어든 말이다.'],
+ ['이게 ___이야?','웬일','왠일','‘어찌 된 일’이라는 뜻은 ‘웬일’이다. ‘웬’은 ‘어찌 된, 어떠한’이라는 뜻이다.'],
+ ['그는 학생___ 본분을 다했다.','으로서','으로써','자격이나 지위를 나타낼 때는 ‘으로서’를 쓴다.'],
+ ['대화___ 문제를 해결했다.','로써','로서','수단이나 도구를 나타낼 때는 ‘로써’를 쓴다.'],
+ ['나가면서 문을 ___.','잠갔다','잠궜다','기본형이 ‘잠그다’이므로 ‘잠가, 잠갔다’로 쓴다.'],
+ ['___ 친구를 만났다.','오랜만에','오랫만에','‘오래간만에’가 줄어든 말이 ‘오랜만에’이다.'],
+ ['소문이 ___ 퍼졌다.','금세','금새','‘금시에’가 줄어든 말이 ‘금세’이다. ‘금새’는 물건값이라는 뜻이다.'],
+ ['시험이 내일인데 이제 ___?','어떡해','어떻게','‘어떻게 해’가 줄어든 말이 ‘어떡해’이다. ‘어떻게’는 뒤에 다른 말이 이어진다.'],
+ ['방학이 ___ 남았지?','며칠','몇일','‘몇 일’로 적지 않고 소리 나는 대로 ‘며칠’로 적는다.'],
+ ['저녁을 먹고 ___를 했다.','설거지','설겆이','표준어는 ‘설거지’이다.'],
+ ['내가 먼저 ___.','할게','할께','‘-ㄹ게’는 된소리로 소리 나더라도 ‘게’로 적는다.'],
+ ['조장의 ___을 맡았다.','역할','역활','‘役割’을 적은 말로 ‘역할’이 맞다.'],
+ ['참 ___ 일이다.','희한한','희안한','‘희한하다’가 표준어이다.'],
+ ['___ 지금 갈 필요는 없다.','굳이','구지','‘굳다’에서 온 말이라 ‘굳이’로 적는다.'],
+ ['감기가 빨리 ___.','나았으면','낳았으면','병이 고쳐지는 것은 ‘낫다’이다. ‘낳다’는 아기나 결과를 낳는 것이다.'],
+ ['퀴즈 정답을 모두 ___.','맞혔다','맞췄다','문제의 답을 틀리지 않게 하는 것은 ‘맞히다’이다. ‘맞추다’는 둘을 비교하거나 짝을 맞게 하는 것이다.'],
+ ['집에 가는 길에 편의점에 ___.','들렀다','들렸다','잠깐 거쳐 가는 것은 ‘들르다’이므로 ‘들렀다’로 쓴다.'],
+ ['카드로 ___했다.','결제','결재','값을 치르는 것은 ‘결제’이다. ‘결재’는 윗사람이 서류를 승인하는 것이다.'],
+ ['그 옷은 눈에 ___ 색이다.','띄는','띠는','‘뜨이다’가 줄어든 말이 ‘띄다’이다. ‘띠다’는 빛깔이나 성질을 가지는 것이다.'],
+ ['네가 꼭 합격하길 ___.','바라','바래','기본형이 ‘바라다’이므로 ‘바라, 바랐다’로 쓴다.'],
+ ['숙제를 했다. ___ 나서 잠을 잤다.','그러고','그리고','‘그리하고’가 줄어든 말은 ‘그러고’이다. ‘그리고’ 뒤에는 ‘나서’를 붙이지 않는다.'],
+ ['친구를 ___ 놀렸다.','일부러','일부로','표준어는 ‘일부러’이다.'],
+ ['사과의 ___를 세어 보자.','개수','갯수','한자어끼리 만난 말에는 사이시옷을 넣지 않는다. 예외는 곳간, 셋방, 숫자, 찻간, 툇간, 횟수 여섯 개뿐이다.'],
+ ['선생님, 내일 ___.','봬요','뵈요','‘뵈어요’가 줄어든 말이 ‘봬요’이다.'],
+ ['너무 ___ 웃음이 났다.','어이없어서','어의없어서','‘어이없다’가 표준어이다.'],
+ ['___ 선수들이 모였다.','내로라하는','내노라하는','‘내로라하다’가 표준어이다.'],
+ ['가___ 말___ 마음대로 해.','든지 / 든지','던지 / 던지','고르는 뜻에는 ‘-든지’, 지난 일을 떠올릴 때는 ‘-던지’를 쓴다.'],
+ ['모자를 쓴 ___ 잠이 들었다.','채로','체로','어떤 상태 그대로라는 뜻은 ‘채’이다. ‘체’는 ‘척’과 같은 뜻이다.'],
+ ['친구가 그 영화 재미있___.','대','데','남이 한 말을 전할 때는 ‘-대’를 쓴다. ‘-데’는 내가 겪은 일을 말할 때 쓴다.'],
+];
+function spellQ(){const s=SPELL[Math.floor(Math.random()*SPELL.length)];const opts=shuffle([s[1],s[2]]);
+  return{type:'choice',key:s[0],plain:s[0].replace(/___/g,'(   )'),prompt:'빈칸에 맞는 표기를 고르자.',big:`<span class="qz-s">${s[0].replace(/___/g,'<u>　　</u>')}</span>`,opts,a:opts.indexOf(s[1]),answer:s[1],w:s[3]}}
+const SPELLQ=makeQuiz({id:'spell',title:'맞춤법 퀴즈',count:10,limit:5*MIN,desc:`자주 틀리는 맞춤법 ${SPELL.length}문제에서 나온다. 답을 고르면 이유가 해설로 나온다.`,gen:spellQ});
+
+/* ───────── 5. 31 게임 ───────── */
+const G31set={mode:'pvp',first:0};let g31=null,g31T=0;
+const G31_MODES=[['pvp','2인 대결'],['easy','컴퓨터 · 쉬움'],['hard','컴퓨터 · 어려움']];
+const g31Names=()=>g31.mode==='pvp'?['1P','2P']:['학생','컴퓨터'];
+function g31New(){clearTimeout(g31T);g31={mode:G31set.mode,n:0,turn:G31set.mode==='pvp'?0:G31set.first,owner:Array(32).fill(-1),last:[],over:false,loser:null,busy:false};
+  if(g31.mode!=='pvp'&&g31.turn===1)g31Cpu()}
+function g31Choose(){
+  const n=g31.n,ks=[1,2,3].filter(k=>n+k<=31),safe=ks.filter(k=>n+k<31);
+  if(g31.mode==='hard'){for(const k of safe)if((n+k)%4===2)return k;return safe.length?safe[0]:1}
+  for(const k of safe)if(n+k===30)return k;
+  return safe.length?safe[Math.floor(Math.random()*safe.length)]:1;
+}
+function g31Cpu(){g31.busy=true;renderG31();g31T=setTimeout(()=>{g31.busy=false;g31Say(g31Choose(),true)},900)}
+function g31Say(k,fromCpu){
+  if(!g31||g31.over||(g31.busy&&!fromCpu))return;
+  if(g31.mode!=='pvp'&&g31.turn===1&&!fromCpu)return;
+  if(g31.n+k>31)return;
+  g31.last=[];for(let i=1;i<=k;i++){g31.owner[g31.n+i]=g31.turn;g31.last.push(g31.n+i)}
+  g31.n+=k;
+  if(g31.n===31){g31.over=true;g31.loser=g31.turn;
+    if(g31.mode==='hard'&&g31.loser===1)setTimeout(()=>rkEntry('g31',null,'어려움 컴퓨터를 이겼다!'),300)}
+  else g31.turn=1-g31.turn;
+  renderG31();
+  if(!g31.over&&g31.mode!=='pvp'&&g31.turn===1)g31Cpu();
+}
+function renderG31(){
+  const nm=g31Names(),cpu=g31.mode!=='pvp';
+  const track=range(1,31).map(v=>{const o=g31.owner[v];return `<div class="nb${o>=0?' p'+o:''}${g31.last.includes(v)?' new':''}${v===31?' end':''}">${v}</div>`}).join('');
+  const winner=g31.over?nm[1-g31.loser]:null;
+  const ga=s=>s+(s==='학생'?'이':'가');
+  const status=g31.over?`${ga(nm[g31.loser])} 31을 말했다. ${winner} 승리!`
+    :g31.busy?'컴퓨터가 생각하는 중이다.':g31.n?`${nm[g31.turn]} 차례이다. 지금까지 ${g31.n}까지 말했다.`:`${nm[g31.turn]} 차례이다. 1부터 시작한다.`;
+  const locked=g31.over||g31.busy||(cpu&&g31.turn===1);
+  const say=[1,2,3].map(k=>{const nums=range(g31.n+1,g31.n+k).filter(v=>v<=31);
+    return `<button type="button" class="sketch ${g31.turn===0?'f-peach':'f-sky'}" data-say="${k}" ${locked||g31.n+k>31?'disabled':''}><b>${k}개 말하기</b><small>${nums.length===k?nums.join(', '):'-'}</small></button>`}).join('');
+  stage.innerHTML=`<div class="ghead"><h2>31 게임</h2><p>1부터 차례로 수를 이어 말한다. 한 번에 1개에서 3개까지 말할 수 있고, 31을 말하는 사람이 진다.</p></div>
+    <div class="opts">${seg('상대','g31m',G31_MODES,g31.mode)}${cpu?seg('먼저 할 사람','g31f',[[0,'학생 먼저'],[1,'컴퓨터 먼저']],G31set.first):''}
+      <button class="btn sketch f-lav" type="button" data-act="rank">랭킹 보기</button><button class="btn sketch f-paper ghost" type="button" data-act="g31new">새 게임</button></div>
+    <div class="g31">
+      <div class="track">${track}</div>
+      <div class="g31-mid"><span class="who-chip sketch f-peach">${nm[0]}</span><span class="status">${status}</span><span class="who-chip sketch f-sky">${nm[1]}</span></div>
+      <div class="say">${say}</div>
+      ${g31.over?`<div style="text-align:center"><button class="btn big sketch f-mint" type="button" data-act="g31new">한 판 더</button></div>`:''}
+      <p class="rec">${g31.mode==='hard'?'어려움 컴퓨터를 이기면 랭킹에 올라요. 이기는 방법이 있어요. 찾아봐요.':g31.mode==='easy'?'쉬움 컴퓨터는 아무 수나 말할 때가 많다.':'두 사람이 번갈아 버튼을 누른다.'}</p>
+    </div>`;
+}
+const G31={
+  mount(){if(!g31||g31.mode!==G31set.mode)g31New();renderG31()},
+  unmount(){if(g31&&g31.busy){clearTimeout(g31T);g31.busy=false;g31Cpu.pending=true}},
+  click(t){
+    if(t.dataset.seg==='g31m'){G31set.mode=t.dataset.v;g31New();renderG31();return}
+    if(t.dataset.seg==='g31f'){G31set.first=+t.dataset.v;g31New();renderG31();return}
+    if(t.dataset.act==='g31new'){g31New();renderG31();return}
+    if(t.dataset.say)g31Say(+t.dataset.say,false);
+  }
+};
+
+/* ───────── 탭 ───────── */
+const GAMES=[
+  {id:'omok',title:'오목',grp:'대결',fill:'f-sky',g:OMOK},
+  {id:'othello',title:'오델로',grp:'대결',fill:'f-mint',g:OTHELLO},
+  {id:'chess',title:'체스',grp:'대결',fill:'f-lav',g:CHESS},
+  {id:'dots',title:'점과 선',grp:'대결',fill:'f-rose',g:DOTS},
+  {id:'g31',title:'31 게임',grp:'대결',fill:'f-peach',g:G31},
+  {id:'baseball',title:'숫자야구',grp:'추리·두뇌',fill:'f-mint',g:BASEBALL},
+  {id:'logic',title:'추리하기',grp:'추리·두뇌',fill:'f-lav',g:LOGICGAME},
+  {id:'brain',title:'두뇌 퀴즈',grp:'추리·두뇌',fill:'f-lemon',g:BRAINQ},
+  {id:'nono',title:'네모 로직',grp:'추리·두뇌',fill:'f-peach',g:NONOGAME},
+  {id:'hanoi',title:'하노이의 탑',grp:'추리·두뇌',fill:'f-sky',g:HANOI},
+  {id:'t24',title:'24 만들기',grp:'공부',fill:'f-lemon',g:T24GAME},
+  {id:'word',title:'영단어 퀴즈',grp:'공부',fill:'f-sky',g:WORDQ},
+  {id:'spell',title:'맞춤법 퀴즈',grp:'공부',fill:'f-rose',g:SPELLQ},
+];
+let curTab=store.get('tab','baseball');if(!GAMES.some(x=>x.id===curTab))curTab='baseball';
+const tabsEl=$('#tabs');
+function renderTabs(){let g0='';tabsEl.innerHTML=GAMES.map(x=>(x.grp!==g0?`<span class="tg">${g0=x.grp}</span>`:'')+`<button class="tab sketch ${x.fill}" role="tab" type="button" data-tab="${x.id}" aria-selected="${x.id===curTab}">${x.title}</button>`).join('')}
+function open(id){
+  const prev=GAMES.find(x=>x.id===curTab);if(prev&&prev.g.unmount)prev.g.unmount();
+  curTab=id;store.set('tab',id);renderTabs();GAMES.find(x=>x.id===id).g.mount();
+  if(id==='g31'&&g31&&g31Cpu.pending){g31Cpu.pending=false;if(!g31.over&&g31.mode!=='pvp'&&g31.turn===1)g31Cpu()}
+}
+$('#rkBtn').addEventListener('click',()=>rkBoard(curTab));
+tabsEl.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b&&b.dataset.tab!==curTab)open(b.dataset.tab)});
+stage.addEventListener('click',e=>{const t=e.target.closest('button');if(!t||t.disabled)return;if(t.dataset.act==='rank'){rkBoard(curTab);return}const g=GAMES.find(x=>x.id===curTab).g;if(g.click)g.click(t)});
+document.addEventListener('keydown',e=>{if(bellMode==='lock'){e.preventDefault();return}if(!ov.hidden){ovKey(e);return}const g=GAMES.find(x=>x.id===curTab).g;if(g.key)g.key(e)});
+
+const clockEl=$('#clock');
+function tickClock(){const d=new Date();clockEl.textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+tickClock();setInterval(tickClock,10000);
+/* 전체 화면 */
+const fsBtn=$('#fsBtn'),root=document.documentElement;
+const fsOn=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+function fsLabel(){fsBtn.textContent=fsOn()?'전체 화면 끝내기':'전체 화면'}
+if(document.fullscreenEnabled||document.webkitFullscreenEnabled){
+  fsBtn.hidden=false;
+  fsBtn.addEventListener('click',()=>{
+    try{
+      if(fsOn()){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}
+      else{const r=(root.requestFullscreen||root.webkitRequestFullscreen).call(root);if(r&&r.catch)r.catch(()=>{fsBtn.textContent='F11을 누르자'})}
+    }catch(_){fsBtn.textContent='F11을 누르자'}
+  });
+  document.addEventListener('fullscreenchange',fsLabel);document.addEventListener('webkitfullscreenchange',fsLabel);
+}
+open(curTab);
+</script>
+</body>
+</html>
